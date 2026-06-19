@@ -3266,7 +3266,7 @@ const ROLE_PERMISSIONS = {
 // remotely, replace the value below with your full /exec URL like:
 //   const BACKEND_URL = '';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
 
-const BACKEND_URL = '';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbypkH3PBfE7VEw25OrF4GCqmfalQHYZLjc2Mk9zyfIp8GYQajYA_hhA5EYbqBYB756ucg/exec';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
 
 // ─── APP STATE ────────────────────────────────────────────
 const APP = {
@@ -3393,7 +3393,7 @@ function _apiInner(action, data) {
         try { resolve(demoResponse(action, data)); }
         catch(demoErr) { reject(demoErr); }
       } else {
-        reject(new Error('Backend unreachable: ' + networkErr.message + '. Check that your Apps Script /exec URL is correct and "Who has access" is set to "Anyone".'));
+        reject(new Error('' + networkErr.message + '. Please Enter correct Username and Password'));
       }
     });
   });
