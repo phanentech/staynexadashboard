@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#0a0c10">
-<title>RR Shortlet — Operations Dashboard</title>
+<title>Staynexa — Operations Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
@@ -992,7 +992,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="login-card">
     <div class="login-logo">
       <div class="logo-icon"><i class="fas fa-building"></i></div>
-      <h1>RR Shortlet</h1>
+      <h1>Staynexa</h1>
       <p>Operations Intelligence Dashboard</p>
     </div>
     <div class="form-group">
@@ -1026,7 +1026,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     <div class="sidebar-logo">
       <div class="logo-mark">RR</div>
       <div class="logo-text">
-        <strong>RR Shortlet</strong>
+        <strong>Staynexa</strong>
         <span>Management System</span>
       </div>
     </div>
@@ -1773,7 +1773,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
             <div class="card-header"><h3><i class="fas fa-building" style="color:var(--gold);margin-right:8px"></i>Branding</h3></div>
             <div class="card-body">
               <div class="form-group"><label class="form-label">App / Business Name</label>
-                <input class="form-control" id="th-app-name" placeholder="RR Shortlet" oninput="updatePreview()"></div>
+                <input class="form-control" id="th-app-name" placeholder="Staynexa" oninput="updatePreview()"></div>
               <div class="form-group"><label class="form-label">Tagline / Subtitle</label>
                 <input class="form-control" id="th-tagline" placeholder="Operations Dashboard" oninput="updatePreview()"></div>
               <div class="form-group"><label class="form-label">Logo Initials (sidebar badge)</label>
@@ -1789,7 +1789,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
                 </div>
               </div>
               <div class="form-group"><label class="form-label">Browser Tab Title</label>
-                <input class="form-control" id="th-page-title" placeholder="RR Shortlet — Operations Dashboard"></div>
+                <input class="form-control" id="th-page-title" placeholder="Staynexa — Operations Dashboard"></div>
               <div class="form-group"><label class="form-label">Business Type</label>
                 <select class="form-control" id="th-biz-type">
                   <option value="shortlet">Shortlet / Serviced Apartments</option>
@@ -1812,7 +1812,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
                     <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px">
                       <div id="th-preview-logo" style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:#fff;flex-shrink:0">RR</div>
                       <div style="min-width:0">
-                        <div id="th-preview-name" style="font-size:0.65rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">RR Shortlet</div>
+                        <div id="th-preview-name" style="font-size:0.65rem;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Staynexa</div>
                         <div id="th-preview-tag" style="font-size:0.55rem;color:var(--text3)">Operations</div>
                       </div>
                     </div>
@@ -7028,7 +7028,7 @@ function reportToCSV(type, d) {
 function reportToExcelHTML(type, d) {
   const reportName = REPORT_NAMES[type] || 'Report';
   const period = type === 'inventory' ? 'Snapshot: ' + new Date().toLocaleString() : `Period: ${APP.currentReport.from} to ${APP.currentReport.to}`;
-  let body = `<h1 style="font-family:Calibri,Arial,sans-serif;color:#1a1f2e">${reportName}</h1><p style="font-family:Calibri,Arial,sans-serif;color:#5a6478">RR Shortlet Apartment · ${period}</p>`;
+  let body = `<h1 style="font-family:Calibri,Arial,sans-serif;color:#1a1f2e">${reportName}</h1><p style="font-family:Calibri,Arial,sans-serif;color:#5a6478">Staynexa · ${period}</p>`;
 
   const tableStyle = 'border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt;margin-top:14px;width:100%';
   const thStyle = 'background:#1a1f2e;color:white;padding:8px 12px;text-align:left;border:1px solid #ddd;font-weight:bold';
@@ -9483,11 +9483,11 @@ document.head.appendChild(_ambStyle);
 // ============================================================
 
 const THEME_DEFAULTS = {
-  appName:      'RR Shortlet',
+  appName:      'Staynexa',
   tagline:      'Operations Dashboard',
   logoText:     'RR',
   logoUrl:      '',
-  pageTitle:    'RR Shortlet — Operations Dashboard',
+  pageTitle:    'Staynexa — Operations Dashboard',
   bizType:      'shortlet',
   colorGold:    '#d4a84a',
   colorEmerald: '#2da57a',
@@ -9641,10 +9641,10 @@ function applyBrandingToApp(theme) {
       logoMark.textContent = (theme.logoText || 'RR').substring(0,2).toUpperCase();
     }
   }
-  if (logoStrong)  logoStrong.textContent = theme.appName || 'RR Shortlet';
+  if (logoStrong)  logoStrong.textContent = theme.appName || 'Staynexa';
   if (logoSpan)    logoSpan.textContent   = theme.tagline || 'Management System';
   // Also update login page branding
-  if (loginTitle)  loginTitle.textContent = theme.appName || 'RR Shortlet';
+  if (loginTitle)  loginTitle.textContent = theme.appName || 'Staynexa';
   if (loginSub)    loginSub.textContent   = theme.tagline || 'Operations Dashboard';
   document.title = theme.pageTitle || theme.appName || 'Operations Dashboard';
 }
@@ -10843,7 +10843,7 @@ function demoResponse(action, data) {
   if (action === 'getUsers') return demoUsers();
   if (action === 'getAuditLogs') return demoAuditLogs();
   if (action === 'getFinancials') return demoFinancials();
-  if (action === 'getSettings') return { property_name: 'RR Shortlet Apartment', property_address: 'Lagos, Nigeria', property_phone: '+234 800 123 4567', property_email: 'info@rrshortlet.com', currency: '₦', low_stock_threshold: 5, session_timeout_hours: 8, whatsapp_api_url: '', admin_email: '', apartment_rules: 'Welcome! Check-out 12 noon, no smoking, no loud music after 10 PM.', feedback_form_url: '' };
+  if (action === 'getSettings') return { property_name: 'Staynexa', property_address: 'Lagos, Nigeria', property_phone: '+234 800 123 4567', property_email: 'info@rrshortlet.com', currency: '₦', low_stock_threshold: 5, session_timeout_hours: 8, whatsapp_api_url: '', admin_email: '', apartment_rules: 'Welcome! Check-out 12 noon, no smoking, no loud music after 10 PM.', feedback_form_url: '' };
   if (action === 'generateReport') return demoReport(data.type);
 
   // Phase 2 module demos
@@ -11263,9 +11263,9 @@ document.addEventListener('DOMContentLoaded', () => {
     warn.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#e05050;color:#fff;padding:10px 16px;text-align:center;z-index:99999;font-size:0.85rem;font-family:Inter,sans-serif;box-shadow:0 4px 12px rgba(0,0,0,0.3)';
     warn.innerHTML = '⚠️ <strong>BACKEND_URL not set.</strong> The app is using demo data only — no writes will reach your Google Sheet. Edit Index.html and paste your Apps Script /exec URL into the BACKEND_URL constant near the top of the &lt;script&gt; tag.';
     document.body.appendChild(warn);
-    console.warn('[RR Shortlet] BACKEND_URL is empty. Set it to your Apps Script /exec URL to connect to your backend.');
+    console.warn('[Staynexa] BACKEND_URL is empty. Set it to your Apps Script /exec URL to connect to your backend.');
   } else if (BACKEND_URL) {
-    console.log('[RR Shortlet] Backend configured:', BACKEND_URL);
+    console.log('[Staynexa] Backend configured:', BACKEND_URL);
   }
 });
 </script>
