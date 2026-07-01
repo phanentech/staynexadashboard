@@ -3977,7 +3977,7 @@ function _apiInner(action, data) {
         try { resolve(demoResponse(action, data)); }
         catch(demoErr) { reject(demoErr); }
       } else {
-        reject(new Error('Backend unreachable: ' + networkErr.message + '. Check that your Apps Script /exec URL is correct and "Who has access" is set to "Anyone".'));
+        reject(new Error('' + networkErr.message + '. Please check your login details and try again.'));
       }
     });
   });
