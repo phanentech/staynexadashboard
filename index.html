@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', function() {
   --r: 14px;
   --r-sm: 8px;
   --sidebar-w: 250px;
-  --topbar-h: 60px;
+  --topbar-h: 56px;
   --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -211,6 +211,42 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
 }
 .login-logo h1 { font-family: var(--font-display); font-size: 1.7rem; letter-spacing: 0.5px; }
 .login-logo p { color: var(--text3); font-size: 0.85rem; margin-top: 4px; }
+/* ── Mobile login overrides ── */
+@media (max-width: 600px) {
+  #login-screen {
+    align-items: flex-start;
+    padding: 0;
+    overflow-y: auto;
+  }
+  .login-card {
+    max-width: 100%;
+    min-height: 100dvh;
+    border-radius: 0;
+    border: none;
+    padding: 48px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: none;
+  }
+  .login-logo .logo-icon { width: 56px; height: 56px; font-size: 22px; margin-bottom: 12px; }
+  .login-logo h1 { font-size: 1.5rem; }
+  .login-logo p  { font-size: 0.82rem; }
+  .login-logo    { margin-bottom: 24px; }
+  /* Bigger inputs so text is readable */
+  .login-card input {
+    font-size: 16px !important;
+    padding: 13px 14px 13px 42px !important;
+    height: auto !important;
+  }
+  .login-card .btn {
+    padding: 14px !important;
+    font-size: 1rem !important;
+    border-radius: 12px;
+    margin-top: 4px;
+  }
+  .form-group label { font-size: 0.82rem; }
+}
 
 .form-group { margin-bottom: 16px; }
 .form-group label {
@@ -303,6 +339,8 @@ input, select, textarea { font-family: inherit; font-size: inherit; }
   position: relative;
 }
 .nav-item:hover { background: var(--surface); color: var(--text); }
+.nav-item.nav-locked { opacity:.55; cursor:not-allowed; }
+.nav-item.nav-locked:hover { background:transparent !important; }
 .nav-item.active {
   background: var(--gold-dim); color: var(--gold); font-weight: 500;
 }
@@ -902,6 +940,9 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 
   /* ── Charts ── */
   canvas { max-height: 160px !important; }
+  /* ── Performance: remove heavy effects on mobile ── */
+  .kpi-card::before, .card::after { display: none !important; }
+  * { -webkit-tap-highlight-color: transparent; }
 
   /* ── Modals ── */
   .modal-body { max-height: 55vh; }
@@ -910,6 +951,10 @@ textarea.form-control { resize: vertical; min-height: 70px; }
 
   /* ── Sidebar narrower on phone ── */
   .sidebar { width: 260px; transform: translateX(-260px); }
+  #plan-switcher-cards { grid-template-columns: 1fr 1fr !important; }
+  /* ── App fills full viewport ── */
+  #app.active { min-height: 100dvh; }
+  .main-content { min-height: calc(100dvh - var(--topbar-h) - 60px); }
 
   /* ── Table action buttons wrap ── */
   td:last-child { white-space: nowrap; }
@@ -923,6 +968,16 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   .main-content { padding-bottom: max(80px, calc(env(safe-area-inset-bottom) + 70px)); }
 }
 
+/* iOS / mobile input zoom prevention — 16px minimum prevents auto-zoom */
+@media (max-width: 900px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+  /* But keep small on desktop */
+}
+@media (min-width: 901px) {
+  input, select, textarea { font-size: inherit; }
+}
 /* iOS / mobile input zoom prevention */
 @media (max-width: 540px) {
   input, select, textarea { font-size: 16px !important; }
@@ -1072,6 +1127,9 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <div class="nav-section-label">Analysis</div>
         <div class="nav-item" data-page="reports" onclick="showPage('reports', this)">
           <i class="fas fa-file-invoice"></i> Reports
+        </div>
+        <div class="nav-item" data-page="sales-performance" onclick="showPage('sales-performance', this)">
+          <i class="fas fa-trophy"></i> Sales Performance
         </div>
         <div class="nav-item" data-page="audit" onclick="showPage('audit', this)">
           <i class="fas fa-shield-halved"></i> Audit Logs
@@ -1454,7 +1512,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         </div>
       </div>
       <div class="card"><div class="table-wrap"><table>
-        <thead><tr><th>ID</th><th>Date</th><th>Type</th><th>Channel</th><th>Items</th><th>Amount</th><th>Method</th><th>Staff</th></tr></thead>
+        <thead><tr><th>ID</th><th>Date</th><th>Type</th><th>Channel</th><th>Items</th><th>Amount</th><th>Method</th><th>Staff</th><th>Actions</th></tr></thead>
         <tbody id="restaurant-body"><tr><td colspan="8" class="page-loader"><div class="spinner"></div></td></tr></tbody>
       </table></div></div>
     </div>
@@ -1597,6 +1655,34 @@ textarea.form-control { resize: vertical; min-height: 70px; }
           </div>
         </div>
       </div>
+      <!-- ── Power BI Embedded Reports ── -->
+      <div class="card" style="margin-top:18px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+          <h3><i class="fas fa-chart-area" style="color:#F2C811;margin-right:8px"></i>Power BI Reports</h3>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select class="form-control" id="pbi-select" onchange="switchPBIReport(this.value)" style="width:220px;font-size:0.82rem">
+              <option value="">— Select Report —</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="openModal('pbi-manage-modal')" title="Manage Power BI links">
+              <i class="fas fa-gear"></i> Manage
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="openPBIFullscreen()" id="pbi-fullscreen-btn" style="display:none" title="Fullscreen">
+              <i class="fas fa-expand"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body" style="padding:0" id="pbi-container">
+          <div style="padding:40px;text-align:center;color:var(--text3)">
+            <i class="fas fa-chart-area" style="font-size:3rem;opacity:.2;display:block;margin-bottom:14px;color:#F2C811"></i>
+            <p style="font-size:0.9rem">No Power BI reports added yet.</p>
+            <p style="font-size:0.8rem;margin-top:6px">Click <strong>Manage</strong> to add your Power BI embed links.</p>
+            <button class="btn btn-primary" style="margin-top:14px" onclick="openModal('pbi-manage-modal')">
+              <i class="fas fa-plus"></i> Add Power BI Report
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div class="card" id="report-output" style="display:none;margin-top:18px">
         <div class="card-header">
           <div><h3 id="report-title">Report</h3><p id="report-subtitle"></p></div>
@@ -1657,6 +1743,26 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         <div class="page-header-actions">
           <button class="btn btn-secondary" onclick="resetTheme()"><i class="fas fa-rotate-left"></i> Reset Defaults</button>
           <button class="btn btn-primary" onclick="saveTheme()"><i class="fas fa-save"></i> Save & Apply</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px;border:1px solid var(--gold-dim)">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h3><i class="fas fa-layer-group" style="color:var(--gold);margin-right:8px"></i><span id="plan-switcher-title">Subscription Plan</span>
+            <span id="plan-switcher-sub" style="font-size:0.75rem;color:var(--text3);font-weight:400;margin-left:8px">Switch plan to demo features to clients</span>
+          </h3>
+        </div>
+        <div class="card-body">
+          <div id="plan-switcher-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px"></div>
+          <div id="plan-preview-row" style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="window.open('https://wa.me/2348108076212?text=Hi%2C%20I%20want%20to%20upgrade%20my%20plan','_blank')">
+              <i class="fab fa-whatsapp"></i> Request Upgrade
+            </button>
+          </div>
+          <div style="margin-top:14px;padding:10px 14px;background:var(--bg3);border-radius:8px;font-size:0.78rem;color:var(--text3)">
+            <i class="fas fa-info-circle" style="color:var(--gold);margin-right:6px"></i>
+            When a plan is active, sidebar items outside that plan show a lock icon and clicking them shows an upgrade prompt. Select Full Access to remove all restrictions.
+          </div>
         </div>
       </div>
 
@@ -1825,6 +1931,60 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       </div>
     </div>
 
+    <!-- Sales Performance -->
+    <div class="page" id="page-sales-performance">
+      <div class="page-header">
+        <div>
+          <h1><i class="fas fa-trophy" style="color:var(--gold);margin-right:10px"></i>Sales Performance</h1>
+          <p>Revenue, bookings and incentives per sales person</p>
+        </div>
+        <div class="page-header-actions">
+          <select class="form-control" id="sp-period" onchange="loadSalesPerformance()" style="width:160px">
+            <option value="all_time">All Time</option>
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="this_year">This Year</option>
+          </select>
+          <select class="form-control" id="sp-branch-filter" onchange="loadSalesPerformance()" style="width:160px">
+            <option value="">All Branches</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KPI summary -->
+      <div class="kpi-grid" id="sp-kpis">
+        <div class="kpi-card"><div class="kpi-label">Total Revenue</div><div class="kpi-value" id="sp-total-rev">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Bookings</div><div class="kpi-value" id="sp-total-bk">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Top Performer</div><div class="kpi-value" id="sp-top-name" style="font-size:1rem">—</div></div>
+        <div class="kpi-card"><div class="kpi-label">Avg per Booking</div><div class="kpi-value" id="sp-avg">—</div></div>
+      </div>
+
+      <!-- Leaderboard -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><h3><i class="fas fa-ranking-star" style="color:var(--gold);margin-right:8px"></i>Leaderboard</h3></div>
+        <div class="card-body" style="padding:0">
+          <div id="sp-leaderboard"><div class="page-loader"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- Detail table -->
+      <div class="card">
+        <div class="card-header">
+          <h3>Booking Details by Sales Person</h3>
+          <input class="form-control search-bar" id="sp-search" placeholder="Search name..." oninput="filterSalesTable(this.value)" style="width:200px">
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead><tr>
+              <th>#</th><th>Booking ID</th><th>Guest</th><th>Apartment</th>
+              <th>Sales Person</th><th>Booked On</th><th>Amount</th><th>Status</th>
+            </tr></thead>
+            <tbody id="sp-detail-body"><tr><td colspan="8" class="page-loader"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- Audit Logs -->
     <div class="page" id="page-audit">
       <div class="page-header">
@@ -1832,7 +1992,30 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       </div>
       <div class="card"><div class="table-wrap"><table>
         <thead><tr><th>Timestamp</th><th>User</th><th>Role</th><th>Action</th><th>Details</th></tr></thead>
-        <tbody id="audit-body"><tr><td colspan="5" class="page-loader"><div class="spinner"></div></td></tr></tbody>
+        <!-- RecycleBin section inside Audit -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center">
+          <h3><i class="fas fa-trash-can-arrow-up" style="color:var(--amber);margin-right:8px"></i>Recycle Bin
+            <span style="font-size:0.75rem;color:var(--text3);font-weight:400;margin-left:8px">Deleted records with reasons</span>
+          </h3>
+          <button class="btn btn-secondary btn-sm" onclick="loadRecycleBin()"><i class="fas fa-rotate"></i> Refresh</button>
+        </div>
+        <div class="card-body" style="padding:0;overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>ID</th><th>Sheet</th><th>Record ID</th><th>Type</th>
+              <th>Deleted By</th><th>Reason</th><th>Deleted At</th><th>Data</th>
+            </tr></thead>
+            <tbody id="recycle-body"><tr><td colspan="8" class="page-loader"><div class="spinner"></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Full Audit Log</h3></div>
+        <div class="card-body" style="padding:0;overflow-x:auto"><table class="data-table">
+          <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th></tr></thead>
+          <tbody id="audit-body"><tr><td colspan="5" class="page-loader"><div class="spinner"></div></td></tr></tbody>
       </table></div></div>
     </div>
 
@@ -2142,6 +2325,15 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="modal">
     <div class="modal-header">
       <h2 id="booking-modal-title">New Booking</h2>
+      <div style="display:flex;align-items:center;gap:10px;margin-left:auto;margin-right:12px">
+        <label style="display:flex;align-items:center;gap:7px;font-size:0.78rem;color:var(--text2);cursor:pointer;white-space:nowrap">
+          <div id="group-toggle" onclick="toggleGroupBooking()"
+            style="width:36px;height:20px;border-radius:10px;background:var(--border2);position:relative;cursor:pointer;transition:background .2s;flex-shrink:0">
+            <div id="group-toggle-dot" style="position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.3)"></div>
+          </div>
+          Group / Branch Booking
+        </label>
+      </div>
       <button class="modal-close" onclick="closeModal('booking-modal')"><i class="fas fa-times"></i></button>
     </div>
     <div class="modal-body">
@@ -2160,6 +2352,51 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       </div>
 
       <input type="hidden" id="bk-id">
+
+      <!-- ── Group / Branch Booking Panel ── -->
+      <div id="group-booking-panel" style="display:none;background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:16px;margin-bottom:14px">
+        <div style="font-size:0.85rem;font-weight:600;color:var(--text);margin-bottom:12px">
+          <i class="fas fa-building" style="color:var(--gold);margin-right:7px"></i>
+          Group / Branch Booking
+        </div>
+
+        <!-- Branch selector -->
+        <div class="form-grid" style="margin-bottom:12px">
+          <div>
+            <label class="form-label">Select Branch *</label>
+            <select class="form-control" id="grp-branch" onchange="loadBranchApartments()">
+              <option value="">— Select Branch / Outlet —</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Quick Select</label>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;padding-top:4px">
+              <button class="btn btn-secondary btn-sm" onclick="selectAllBranchApts()" type="button">
+                <i class="fas fa-check-double"></i> All Units
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="clearBranchApts()" type="button">
+                <i class="fas fa-xmark"></i> Clear
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apartment checkboxes -->
+        <div id="grp-apt-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+          <div style="color:var(--text3);font-size:0.82rem;grid-column:1/-1;padding:8px 0">Select a branch to see available apartments</div>
+        </div>
+
+        <!-- Group summary -->
+        <div id="grp-summary" style="display:none;background:var(--gold-dim);border:1px solid rgba(212,168,74,0.3);border-radius:10px;padding:12px 14px;font-size:0.83rem">
+          <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-weight:600">
+            <span><i class="fas fa-building" style="color:var(--gold);margin-right:4px"></i><strong id="grp-apt-count">0</strong> apartments</span>
+            <span style="color:var(--gold)"><strong id="grp-total-rate">₦0</strong>/night</span>
+            <span style="color:var(--amber)">Caution: <strong id="grp-total-caution">₦0</strong></span>
+          </div>
+          <div id="grp-breakdown"></div>
+        </div>
+      </div>
+
       <div class="form-grid">
         <div><label class="form-label">Guest Name *</label><input class="form-control" id="bk-name" required></div>
         <div><label class="form-label">Phone *</label><input class="form-control" id="bk-phone" required></div>
@@ -2178,11 +2415,28 @@ textarea.form-control { resize: vertical; min-height: 70px; }
           <option>Social Media</option>
           <option>Other</option>
         </select></div>
-        <div><label class="form-label">Apartment *</label><select class="form-control" id="bk-apartment" required onchange="updateBookingPrice()"></select></div>
-        <div><label class="form-label">Check-in *</label><input type="date" class="form-control" id="bk-checkin" required onchange="updateBookingPrice()"></div>
-        <div><label class="form-label">Check-out *</label><input type="date" class="form-control" id="bk-checkout" required onchange="updateBookingPrice()"></div>
+        <div>
+          <label class="form-label">Apartment *</label>
+          <select class="form-control" id="bk-apartment" required onchange="updateBookingPrice();loadBedConfigs()"></select>
+        </div>
+        <div id="bk-bed-config-wrapper" style="display:none">
+          <label class="form-label"><i class="fas fa-bed" style="color:var(--gold);margin-right:5px"></i>Bed Configuration</label>
+          <select class="form-control" id="bk-bed-config" onchange="applyBedConfig()">
+            <option value="">— Select Bed Config —</option>
+          </select>
+        </div>
+        <div><label class="form-label">Check-in *</label><input type="date" class="form-control" id="bk-checkin" onchange="updateBookingPrice();if(typeof _groupMode!=='undefined'&&_groupMode)updateGroupSummary()" required onchange="updateBookingPrice()"></div>
+        <div><label class="form-label">Check-out *</label><input type="date" class="form-control" id="bk-checkout" onchange="updateBookingPrice();if(typeof _groupMode!=='undefined'&&_groupMode)updateGroupSummary()" required onchange="updateBookingPrice()"></div>
         <div><label class="form-label">Standard Total</label><input class="form-control" id="bk-standard" readonly style="background:var(--bg3)"></div>
-        <div><label class="form-label">Negotiated Price</label><input type="number" class="form-control" id="bk-negotiated" oninput="updateBookingPrice()"></div>
+        <div><label class="form-label">
+          Negotiated Price
+          <span style="color:var(--text3);font-weight:400;font-size:0.72rem"> (editable — auto-fills from rate × nights)</span>
+        </label>
+        <input type="number" class="form-control" id="bk-negotiated"
+          oninput="updateBookingTotal()"
+          style="border:1.5px solid var(--gold-dim)"
+          placeholder="Enter price...">
+      </div>
         <div><label class="form-label">Discount %</label><input class="form-control" id="bk-discount" readonly style="background:var(--bg3)"></div>
         <div class="form-full"><label class="form-label">Discount Reason</label><input class="form-control" id="bk-reason" placeholder="Required if discount > 0%"></div>
 
@@ -2192,14 +2446,19 @@ textarea.form-control { resize: vertical; min-height: 70px; }
           <div class="form-grid" style="margin:0;gap:10px">
             <div>
               <label class="form-label">Caution / Security Fee (₦) <span style="color:var(--emerald);font-size:0.7rem">(refundable)</span></label>
-              <input type="number" class="form-control" id="bk-caution" placeholder="0" oninput="updateBookingTotal()">
+              <div style="display:flex;gap:6px;align-items:center">
+                <input type="number" class="form-control" id="bk-caution" placeholder="0" oninput="updateBookingTotal()" style="flex:1">
+                <button type="button" class="btn btn-secondary btn-sm" title="Remove caution fee" onclick="document.getElementById('bk-caution').value=0;updateBookingTotal();showToast('Caution fee removed','success')" style="white-space:nowrap;flex-shrink:0">
+                  <i class="fas fa-xmark"></i> Remove
+                </button>
+              </div>
             </div>
             <div>
-              <label class="form-label">Cleaning Fee (₦)</label>
+              <label class="form-label">Cleaning Fee (₦) <button type="button" onclick="document.getElementById('bk-cleaning').value=0;updateBookingTotal()" style="background:none;border:none;color:var(--rose);font-size:0.7rem;cursor:pointer;padding:0 4px" title="Remove"><i class="fas fa-xmark"></i></button></label>
               <input type="number" class="form-control" id="bk-cleaning" placeholder="0" oninput="updateBookingTotal()">
             </div>
             <div>
-              <label class="form-label">Party / Event Fee (₦)</label>
+              <label class="form-label">Party / Event Fee (₦) <button type="button" onclick="document.getElementById('bk-party').value=0;updateBookingTotal()" style="background:none;border:none;color:var(--rose);font-size:0.7rem;cursor:pointer;padding:0 4px" title="Remove"><i class="fas fa-xmark"></i></button></label>
               <input type="number" class="form-control" id="bk-party" placeholder="0 — only if hosting event" oninput="updateBookingTotal()">
             </div>
             <div>
@@ -2225,6 +2484,12 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         </div>
 
         <div><label class="form-label">Source / How they found us</label><select class="form-control" id="bk-source"><option>Direct</option><option>Guest Form</option><option>WhatsApp</option><option>Instagram</option><option>Referral</option><option>Airbnb</option><option>Booking.com</option><option>Other</option></select></div>
+        <div>
+          <label class="form-label">Sales Person <span style="color:var(--text3);font-weight:400;font-size:0.75rem">(who made this sale)</span></label>
+          <select class="form-control" id="bk-salesperson">
+            <option value="">— Select Sales Person —</option>
+          </select>
+        </div>
         <div class="form-full"><label class="form-label">Special Requests</label><textarea class="form-control" id="bk-notes"></textarea></div>
         <div class="form-full" id="bk-id-file-container"></div>
       </div>
@@ -2245,8 +2510,18 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div><label class="form-label">Type *</label><select class="form-control" id="apt-type"><option>Studio</option><option>1-Bedroom</option><option>2-Bedroom</option><option>3-Bedroom</option><option>Penthouse</option></select></div>
       <div><label class="form-label">Floor</label><input class="form-control" id="apt-floor"></div>
       <div><label class="form-label">Capacity</label><input type="number" class="form-control" id="apt-capacity" value="2"></div>
-      <div><label class="form-label">Daily Rate (₦) *</label><input type="number" class="form-control" id="apt-rate" required></div>
+      <div><label class="form-label">Daily Rate (₦) * <span style="color:var(--text3);font-weight:400;font-size:0.72rem">(default/standard)</span></label><input type="number" class="form-control" id="apt-rate" required oninput="syncFirstBedConfig()"></div>
       <div><label class="form-label">Status</label><select class="form-control" id="apt-status"><option>Available</option><option>Occupied</option><option>Maintenance</option></select></div>
+      <!-- Bed Configurations -->
+      <div class="form-full">
+        <label class="form-label" style="display:flex;justify-content:space-between;align-items:center">
+          <span><i class="fas fa-bed" style="color:var(--gold);margin-right:6px"></i>Bed Configurations & Rates
+            <span style="color:var(--text3);font-weight:400;font-size:0.72rem;margin-left:6px">(optional — for apartments with multiple bedroom options)</span>
+          </span>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addBedConfig()"><i class="fas fa-plus"></i> Add</button>
+        </label>
+        <div id="bed-configs-list" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
+      </div>
       <div class="form-full" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
         <div style="font-size:0.78rem;font-weight:600;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">&#128176; Default Fee Schedule</div>
         <div class="form-grid" style="margin:0">
@@ -2266,10 +2541,67 @@ textarea.form-control { resize: vertical; min-height: 70px; }
         </div>
       </div>
       <div class="form-full"><label class="form-label">Description / Amenities</label><textarea class="form-control" id="apt-desc"></textarea></div>
+
+      <!-- PHOTOS -->
+      <div class="form-full">
+        <label class="form-label"><i class="fas fa-camera" style="color:var(--gold);margin-right:6px"></i>Apartment Photos</label>
+        <div style="display:flex;gap:0;margin-bottom:12px;border:1px solid var(--border);border-radius:8px;overflow:hidden;width:fit-content">
+          <button type="button" id="photo-tab-upload" onclick="switchPhotoTab('upload')" style="padding:7px 16px;font-size:0.78rem;border:none;cursor:pointer;background:var(--gold);color:var(--ink);font-weight:600">
+            <i class="fas fa-upload"></i> Upload File
+          </button>
+          <button type="button" id="photo-tab-url" onclick="switchPhotoTab('url')" style="padding:7px 16px;font-size:0.78rem;border:none;cursor:pointer;background:var(--bg3);color:var(--text2);font-weight:500">
+            <i class="fas fa-link"></i> Paste URL
+          </button>
+        </div>
+        <div id="photo-upload-panel">
+          <div id="photo-drop-zone" style="border:2px dashed var(--border2);border-radius:10px;padding:22px;text-align:center;cursor:pointer;background:var(--bg3)"
+            onclick="document.getElementById('apt-photo-input').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+            ondragleave="this.style.borderColor='var(--border2)'"
+            ondrop="handlePhotoDrop(event)">
+            <i class="fas fa-cloud-upload-alt" style="font-size:2rem;color:var(--gold);opacity:.5;margin-bottom:8px;display:block"></i>
+            <div style="font-size:0.85rem;color:var(--text2);margin-bottom:3px"><strong>Click to upload</strong> or drag & drop</div>
+            <div style="font-size:0.75rem;color:var(--text3)">JPG, PNG, WEBP — max 5MB · Up to 3 photos</div>
+          </div>
+          <input type="file" id="apt-photo-input" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this.files)">
+        </div>
+        <div id="photo-url-panel" style="display:none">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div><label class="form-label" style="font-size:0.7rem">Photo 1 (Main)</label>
+              <input class="form-control" id="apt-image-url1" placeholder="https://... Google Drive, Cloudinary, Imgur..." onblur="previewUrlPhotos()"></div>
+            <div><label class="form-label" style="font-size:0.7rem">Photo 2</label>
+              <input class="form-control" id="apt-image-url2" placeholder="https://..." onblur="previewUrlPhotos()"></div>
+            <div><label class="form-label" style="font-size:0.7rem">Photo 3</label>
+              <input class="form-control" id="apt-image-url3" placeholder="https://..." onblur="previewUrlPhotos()"></div>
+          </div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-top:8px;line-height:1.5;padding:8px 12px;background:var(--bg3);border-radius:6px">
+            <strong>Google Drive:</strong> Share → Get link → change <code>/view</code> to <code>/preview</code> or use <a href="https://sites.google.com/new" target="_blank" style="color:var(--sky)">Google Sites</a> to host<br>
+            <strong>Best option:</strong> Upload free to <a href="https://cloudinary.com" target="_blank" style="color:var(--sky)">Cloudinary.com</a> → paste the direct URL
+          </div>
+        </div>
+        <div id="photo-previews" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+      </div>
+
+      <!-- AMENITIES -->
+      <div class="form-full">
+        <label class="form-label"><i class="fas fa-list-check" style="color:var(--gold);margin-right:6px"></i>Amenities</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+          <span class="amenity-toggle" data-val="WiFi" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-wifi" style="margin-right:4px"></i>WiFi</span>
+          <span class="amenity-toggle" data-val="Generator" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-bolt" style="margin-right:4px"></i>Generator</span>
+          <span class="amenity-toggle" data-val="Air Conditioning" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-snowflake" style="margin-right:4px"></i>A/C</span>
+          <span class="amenity-toggle" data-val="Smart TV" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-tv" style="margin-right:4px"></i>Smart TV</span>
+          <span class="amenity-toggle" data-val="Kitchen" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-kitchen-set" style="margin-right:4px"></i>Kitchen</span>
+          <span class="amenity-toggle" data-val="Parking" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-car" style="margin-right:4px"></i>Parking</span>
+          <span class="amenity-toggle" data-val="Laundry" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-shirt" style="margin-right:4px"></i>Laundry</span>
+          <span class="amenity-toggle" data-val="Security" onclick="toggleAmenity(this)" style="padding:5px 12px;border-radius:20px;border:1px solid var(--border2);font-size:0.76rem;cursor:pointer;background:var(--bg3);color:var(--text2)"><i class="fas fa-shield" style="margin-right:4px"></i>Security</span>
+        </div>
+        <input class="form-control" id="apt-amenities" placeholder="Additional amenities: Pool, Gym, Balcony...">
+      </div>
+
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('apartment-modal')">Cancel</button>
-      <button class="btn btn-primary" onclick="submitApartment()">Save</button>
+      <button class="btn btn-primary" onclick="submitApartment()">Save Apartment</button>
     </div>
   </div>
 </div>
@@ -2839,6 +3171,7 @@ textarea.form-control { resize: vertical; min-height: 70px; }
   <div class="modal">
     <div class="modal-header"><h2>Record Sale</h2><button class="modal-close" onclick="closeModal('sale-modal')"><i class="fas fa-times"></i></button></div>
     <div class="modal-body"><div class="form-grid">
+      <input type="hidden" id="rest-edit-id" value="">
       <div><label class="form-label">Type</label><select class="form-control" id="sale-type"><option>Walk-in</option><option>Delivery</option><option>Room Service</option></select></div>
       <div><label class="form-label">Sales Channel</label><select class="form-control" id="sale-channel">
         <option>In-house</option>
@@ -2856,6 +3189,8 @@ textarea.form-control { resize: vertical; min-height: 70px; }
       <div><label class="form-label">Method</label><select class="form-control" id="sale-method"><option>Cash</option><option>POS</option><option>Bank Transfer</option><option>Mobile Money</option></select></div>
       <div><label class="form-label">Date</label><input type="date" class="form-control" id="sale-date"></div>
       <div class="form-full"><label class="form-label">Items</label><textarea class="form-control" id="sale-items" placeholder="Description of items sold"></textarea></div>
+      <div><label class="form-label">Serving Staff</label><input class="form-control" id="sale-staff" placeholder="Staff name"></div>
+      <div><label class="form-label">Notes</label><input class="form-control" id="sale-notes" placeholder="Additional notes"></div>
     </div></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('sale-modal')">Cancel</button>
@@ -2944,6 +3279,53 @@ textarea.form-control { resize: vertical; min-height: 70px; }
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('pr-modal')">Cancel</button>
       <button class="btn btn-primary" onclick="submitPurchaseRequest()">Submit Request</button>
+    </div>
+  </div>
+</div>
+
+<!-- Upgrade Plan Modal -->
+<div class="modal-overlay" id="upgrade-modal">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header" style="border-bottom:none;padding-bottom:0">
+      <div></div>
+      <button class="modal-close" onclick="closeModal('upgrade-modal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body" style="text-align:center;padding-top:0">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;margin:0 auto 20px">
+        <i class="fas fa-lock" style="font-size:1.8rem;color:var(--gold)"></i>
+      </div>
+      <h2 style="margin-bottom:8px">Feature Locked</h2>
+      <p style="color:var(--text3);font-size:0.9rem;margin-bottom:20px" id="upgrade-modal-text">
+        This feature is available on a higher plan.
+      </p>
+      <div style="background:var(--bg3);border-radius:10px;padding:16px;text-align:left;margin-bottom:20px">
+        <div style="font-size:0.75rem;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Upgrade to unlock:</div>
+        <div id="upgrade-modal-features" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="closeModal('upgrade-modal');window.open('https://wa.me/2348108076212?text=Hi%2C%20I%20want%20to%20upgrade%20my%20plan','_blank')">
+        <i class="fab fa-whatsapp"></i> Contact Us to Upgrade
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Power BI Manage Modal -->
+<div class="modal-overlay" id="pbi-manage-modal">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h2><i class="fas fa-chart-area" style="color:#F2C811;margin-right:8px"></i>Manage Power BI Reports</h2>
+      <button class="modal-close" onclick="closeModal('pbi-manage-modal')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:0.82rem;color:var(--text3);margin-bottom:16px">
+        Add Power BI embed URLs. Get your embed URL from Power BI: <strong>File → Publish to web → Embed code</strong>, or from the Power BI service embed settings.
+      </p>
+      <div id="pbi-reports-list" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px"></div>
+      <button class="btn btn-secondary" onclick="addPBIRow()"><i class="fas fa-plus"></i> Add Report</button>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('pbi-manage-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="savePBIReports()"><i class="fas fa-save"></i> Save</button>
     </div>
   </div>
 </div>
@@ -3324,7 +3706,7 @@ const ROLE_PERMISSIONS = {
     pages: ['dashboard','bookings','apartments','guests','housekeeping','maintenance',
             'finance','payments','expenses','restaurant','inventory','fuel','staff','loans','assets',
             'feedback','complaints','maint-requests','incidents','purchase-requests',
-            'reports','audit','users','settings','theme'],
+            'reports','sales-performance','audit','users','settings','theme'],
     startPage: 'dashboard',
   },
   'Admin': {
@@ -3332,13 +3714,13 @@ const ROLE_PERMISSIONS = {
     pages: ['dashboard','bookings','apartments','guests','housekeeping','maintenance',
             'finance','payments','expenses','restaurant','inventory','fuel','staff','loans','assets',
             'feedback','complaints','maint-requests','incidents','purchase-requests',
-            'reports','audit','users','settings'],
+            'reports','sales-performance','audit','users','settings'],
   },
   'Management': {
     label: 'Management',
     pages: ['dashboard','bookings','apartments','guests','housekeeping','maintenance',
             'finance','payments','expenses','restaurant','inventory','fuel','staff','loans',
-            'feedback','complaints','maint-requests','incidents','purchase-requests','reports'],
+            'feedback','complaints','maint-requests','incidents','purchase-requests','reports','sales-performance'],
   },
   'Receptionist': {
     label: 'Receptionist',
@@ -3365,6 +3747,102 @@ const ROLE_PERMISSIONS = {
   },
 };
 
+// ════════════════════════════════════════════════════════
+// SUBSCRIPTION PLANS — controls which pages/features are unlocked
+// ════════════════════════════════════════════════════════
+const PLAN_CONFIG = {
+  Starter: {
+    label: 'Starter',
+    price: 45000,
+    tagline: 'Perfect for individual shortlet owners just getting started',
+    maxProperties: 5,
+    maxGuests: 500,
+    pages: [
+      'dashboard','bookings','apartments','guests','housekeeping',
+      'payments','expenses','finance','reports',
+      'complaints','incidents','guest-forms'
+    ],
+    features: [
+      'Up to 5 properties / units',
+      'Booking Management',
+      'Guest CRM (up to 500 guests)',
+      'Payment Tracking & Receipts',
+      'Housekeeping Task Automation',
+      'Basic Reports & Analytics',
+      'Automated Email Notifications',
+    ],
+  },
+  Professional: {
+    label: 'Professional',
+    price: 75000,
+    tagline: 'For growing property managers handling multiple units',
+    maxProperties: 20,
+    maxGuests: null,
+    pages: [
+      'dashboard','bookings','apartments','guests','housekeeping',
+      'payments','expenses','finance','reports','complaints','incidents','guest-forms',
+      'staff','maintenance','inventory','loans','sales-performance',
+      'maint-requests','purchase-requests','theme'
+    ],
+    features: [
+      'Up to 20 properties / units',
+      'Everything in Starter',
+      'Staff Management & Attendance',
+      'Maintenance Management',
+      'Inventory & Stock Tracking',
+      'Staff Loans Module',
+      'Advanced Reports & Exports',
+      'Unlimited Guest Records',
+      'WhatsApp Support (Priority)',
+      'Multi-branch Dashboard',
+      'Custom Branding',
+    ],
+  },
+  Enterprise: {
+    label: 'Enterprise',
+    price: 120000,
+    tagline: 'For large operators managing multiple branches across locations',
+    maxProperties: null,
+    maxGuests: null,
+    pages: [
+      'dashboard','bookings','apartments','guests','housekeeping',
+      'payments','expenses','finance','reports','complaints','incidents','guest-forms',
+      'staff','maintenance','inventory','loans','sales-performance',
+      'maint-requests','purchase-requests','theme',
+      'restaurant','fuel','assets','audit','users','settings'
+    ],
+    features: [
+      'Unlimited properties & branches',
+      'Everything in Professional',
+      'Multi-branch Dashboard',
+      'Custom White-Label Branding',
+      'Restaurant & Bar Module',
+      'Fuel & Power Tracking',
+      'Assets & Inventory Management',
+      'Dedicated Account Manager',
+      'Custom Onboarding & Training',
+      'SLA & Priority Phone Support',
+      'API Access & Integrations',
+    ],
+  },
+};
+
+// Current active plan — null means no plan restriction (full access, e.g. your own instance)
+let CURRENT_PLAN = null;
+
+function getEffectivePages(rolePages) {
+  // If no plan set, or user is SuperAdmin, show everything the role allows
+  if (!CURRENT_PLAN || !PLAN_CONFIG[CURRENT_PLAN] || APP.user?.role === 'SuperAdmin') {
+    return { allowed: rolePages, locked: [] };
+  }
+  const planPages = PLAN_CONFIG[CURRENT_PLAN].pages;
+  const allowed = rolePages.filter(p => planPages.includes(p));
+  const locked  = rolePages.filter(p => !planPages.includes(p));
+  return { allowed, locked };
+}
+
+
+
 // ─── BACKEND URL CONFIG ───────────────────────────────────
 // When deployed inside Google Apps Script as a Web App, this auto-detects
 // the /exec URL. If you want to host this HTML somewhere else (e.g.
@@ -3372,7 +3850,7 @@ const ROLE_PERMISSIONS = {
 // remotely, replace the value below with your full /exec URL like:
 //   const BACKEND_URL = '';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
 
-const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbypkH3PBfE7VEw25OrF4GCqmfalQHYZLjc2Mk9zyfIp8GYQajYA_hhA5EYbqBYB756ucg/exec';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
+const BACKEND_URL = 'https://script.google.com/macros/s/AKfycbwl6MWBA5PGfHWauwtZuZUTJjvsQRST-bB-0gJ9YvYt3PjHber3Pt906f7MOr7K-0jd/exec';   // ← paste your GAS /exec URL here (leave empty when deployed in GAS)
 
 // ─── APP STATE ────────────────────────────────────────────
 const APP = {
@@ -3499,7 +3977,7 @@ function _apiInner(action, data) {
         try { resolve(demoResponse(action, data)); }
         catch(demoErr) { reject(demoErr); }
       } else {
-        reject(new Error('' + networkErr.message + '. Please Provide Correct Credentials'));
+        reject(new Error('Backend unreachable: ' + networkErr.message + '. Check that your Apps Script /exec URL is correct and "Who has access" is set to "Anyone".'));
       }
     });
   });
@@ -3560,6 +4038,7 @@ async function doLogin() {
 }
 
 function doLogout() {
+
   if (APP.token) api('logout', {}).catch(() => {});
   APP.token = null;
   APP.user = null;
@@ -3575,6 +4054,7 @@ function doLogout() {
 function showApp() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').classList.add('active');
+
   document.getElementById('user-name').textContent = APP.user.name;
   const perm = ROLE_PERMISSIONS[APP.user.role];
   document.getElementById('user-role').textContent = perm ? perm.label : APP.user.role;
@@ -3582,6 +4062,11 @@ function showApp() {
   document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-NG', {
     weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
   });
+
+  // Sync theme, branding and subscription plan from the backend Settings sheet
+  // so every device/browser shows the SAME appearance, not just what's cached locally
+  loadThemeFromBackend();
+  loadPlanFromBackend();
 
   applyRolePermissions();
   navigateToFirstAllowedPage();
@@ -3593,10 +4078,30 @@ function applyRolePermissions() {
   const perm = ROLE_PERMISSIONS[role];
   if (!perm) return;
 
-  // Hide nav items not in role's pages
+  const { allowed, locked } = getEffectivePages(perm.pages);
+
+  // Show allowed items, hide items not in role's pages at all, lock plan-restricted items
   document.querySelectorAll('.nav-item[data-page]').forEach(item => {
     const page = item.getAttribute('data-page');
-    item.style.display = perm.pages.includes(page) ? '' : 'none';
+    if (!perm.pages.includes(page)) {
+      item.style.display = 'none';
+      return;
+    }
+    item.style.display = '';
+    if (locked.includes(page)) {
+      item.classList.add('nav-locked');
+      if (!item.querySelector('.lock-badge')) {
+        item.insertAdjacentHTML('beforeend', '<i class="fas fa-lock lock-badge" style="margin-left:auto;font-size:0.68rem;color:var(--gold);opacity:.7"></i>');
+      }
+      item.onclick = (e) => { e.preventDefault(); e.stopPropagation(); showUpgradeModal(page); };
+    } else {
+      item.classList.remove('nav-locked');
+      const badge = item.querySelector('.lock-badge');
+      if (badge) badge.remove();
+      // Restore original onclick
+      const pg = item.getAttribute('data-page');
+      item.onclick = (e) => showPage(pg, item);
+    }
   });
 
   // Hide section headers if all items hidden
@@ -3635,6 +4140,9 @@ const PAGE_LOADERS = {
   'purchase-requests': loadPurchaseRequests,
   'guest-forms': loadGuestForms,
   'assets': loadAssets,
+  'theme': loadThemePage,
+  'sales-performance': loadSalesPerformance,
+  'loans': loadLoans,
 };
 const PAGE_TITLES = {
   dashboard: 'Dashboard', bookings: 'Bookings', apartments: 'Apartments',
@@ -3660,21 +4168,23 @@ function _initPageCache() {
 }
 
 function showPage(pageId, navEl) {
-  // Verify access
+  // Verify role access
   const perm = ROLE_PERMISSIONS[APP.user?.role];
   if (perm && !perm.pages.includes(pageId)) {
     showToast('You do not have access to this page', 'error');
     return;
+  }
+  // Verify plan access
+  if (perm) {
+    const { locked } = getEffectivePages(perm.pages);
+    if (locked.includes(pageId)) { showUpgradeModal(pageId); return; }
   }
   // Init cache once
   if (!_pageCache) _initPageCache();
   // Hide current page/nav instantly using cached refs
   Object.values(_pageCache).forEach(p => p.classList.remove('active'));
   Object.values(_navCache).forEach(n => n.classList.remove('active'));
-  // Update mobile bottom nav
-  document.querySelectorAll('.mob-nav-btn').forEach(b => {
-    b.style.color = b.dataset.page === pageId ? 'var(--gold)' : '';
-  });
+
   const pageEl = _pageCache[pageId] || document.getElementById('page-' + pageId);
   if (pageEl) pageEl.classList.add('active');
   const navItem = navEl || _navCache[pageId];
@@ -3753,6 +4263,16 @@ function onPayBookingChange(sel) {
 function openModal(id) {
   document.getElementById(id).classList.add('active');
   // Pre-populate apartment dropdowns inside modal if present
+  if (id === 'apartment-modal') {
+    const editId = document.getElementById('apt-edit-id')?.value;
+    if (!editId) {
+      // New apartment — clear everything
+      const bcList = document.getElementById('bed-configs-list');
+      if (bcList) bcList.innerHTML = '';
+      resetPhotoPanel();
+      switchPhotoTab('upload');
+    }
+  }
   if (id === 'booking-modal') {
     // Reset to new-booking mode if not explicitly set to edit mode
     if (!document.getElementById('bk-id')?.value) {
@@ -3871,6 +4391,45 @@ function openModal(id) {
     });
     document.getElementById('si-category').value = 'Bedding';
   }
+  if (id === 'apartment-modal') {
+    const editId = document.getElementById('apt-edit-id')?.value;
+    if (!editId) {
+      // New apartment — clear everything
+      const bcList = document.getElementById('bed-configs-list');
+      if (bcList) bcList.innerHTML = '';
+      resetPhotoPanel();
+      switchPhotoTab('upload');
+    }
+  }
+  if (id === 'booking-modal') {
+    // Load staff into salesperson dropdown
+    const spSel = document.getElementById('bk-salesperson');
+    if (spSel && spSel.options.length <= 1) {
+      const staff = APP.cache.staff || [];
+      const salesRoles = ['Receptionist','Management','Admin','Sales'];
+      const salesStaff = staff.filter(s => salesRoles.includes(s.Role) || !s.Role);
+      spSel.innerHTML = '<option value="">— Select Sales Person —</option>' +
+        staff.map(s => `<option value="${escapeHtml(s.Name||'')}">
+          ${escapeHtml(s.Name||'')}${s.Role?' ('+escapeHtml(s.Role)+')':''}</option>`).join('');
+      if (!staff.length) {
+        api('getStaff',{}).then(d => {
+          APP.cache.staff = d||[];
+          spSel.innerHTML = '<option value="">— Select Sales Person —</option>' +
+            (d||[]).map(s => `<option value="${escapeHtml(s.Name||'')}">
+              ${escapeHtml(s.Name||'')}${s.Role?' ('+escapeHtml(s.Role)+')':''}</option>`).join('');
+        }).catch(()=>{});
+      }
+    }
+    // Auto-select logged-in user as salesperson
+    const spOpts = spSel ? Array.from(spSel.options) : [];
+    const matchOpt = spOpts.find(o => o.value === APP.user?.name);
+    if (matchOpt) matchOpt.selected = true;
+  }
+  if (id === 'pbi-manage-modal') { openPBIManageModal(); return; }
+  if (id === 'sale-modal') {
+    const staffEl = document.getElementById('sale-staff');
+    if (staffEl && !staffEl.value) staffEl.value = APP.user?.name || '';
+  }
   if (id === 'loan-modal') {
     // Ensure staff data is loaded for the search
     if (!_staffAll || _staffAll.length === 0) {
@@ -3903,14 +4462,45 @@ function openModal(id) {
 
 function closeModal(id) {
   // Always restore booking save button when modal closes
+  if (id === 'apartment-modal') {
+    const editId = document.getElementById('apt-edit-id')?.value;
+    if (!editId) {
+      // New apartment — clear everything
+      const bcList = document.getElementById('bed-configs-list');
+      if (bcList) bcList.innerHTML = '';
+      resetPhotoPanel();
+      switchPhotoTab('upload');
+    }
+  }
+  if (id === 'sale-modal') {
+    // Reset edit state safely
+    try { const eid = document.getElementById('rest-edit-id'); if(eid) eid.value=''; } catch(e){}
+    try { const b = document.querySelector('#sale-modal .btn-primary'); if(b) b.onclick=submitSale; } catch(e){}
+    try { const t = document.querySelector('#sale-modal .modal-header h2'); if(t) t.textContent='Record Sale'; } catch(e){}
+  }
   if (id === 'booking-modal') {
     const btn = document.querySelector('#booking-modal .btn-primary');
     if (btn) { btn.disabled = false; if (btn._origLabel) btn.innerHTML = btn._origLabel; }
+    // Reset group booking mode
+    if (_groupMode) {
+      _groupMode = false;
+      _selectedGroupApts.clear();
+      const toggle = document.getElementById('group-toggle');
+      const dot    = document.getElementById('group-toggle-dot');
+      const panel  = document.getElementById('group-booking-panel');
+      if (toggle) toggle.style.background = 'var(--border2)';
+      if (dot)    dot.style.left = '2px';
+      if (panel)  panel.style.display = 'none';
+      const singleAptDiv = document.getElementById('bk-apartment')?.closest('.form-grid > div');
+      if (singleAptDiv) singleAptDiv.style.display = '';
+    }
   }
-  document.getElementById(id).classList.remove('active');
+  const modalEl = document.getElementById(id);
+  if (!modalEl) return;                          // guard — modal may already be closed
+  modalEl.classList.remove('active');
   // Clear form fields
-  document.querySelectorAll(`#${id} input, #${id} textarea, #${id} select`).forEach(el => {
-    if (el.type !== 'date') el.value = '';
+  modalEl.querySelectorAll('input, textarea, select').forEach(el => {
+    if (el.type !== 'hidden' && el.type !== 'date') el.value = '';
   });
 }
 
@@ -4697,16 +5287,59 @@ async function loadApartmentSelect(elId) {
     APP.cache.apartments = apts;
     const sel = document.getElementById(elId);
     if (!sel) return;
-    sel.innerHTML = '<option value="">— Select Apartment —</option>' + apts.map(a =>
-      `<option value="${a.ApartmentID}"
-        data-rate="${a.DailyRate||0}"
-        data-caution="${a.CautionFee||0}"
-        data-cleaning="${a.CleaningFee||0}"
-        data-party="${a.PartyFee||0}"
-        data-extragust="${a.ExtraGuestFee||0}"
-        >${escapeHtml(a.Name)} (${fmtN(a.DailyRate)}/night)</option>`
-    ).join('');
-  } catch (e) {}
+
+      // Group by base name (strip party/event suffixes), show Type as config label
+    const nameGroups = {};
+    const nameOrder  = [];
+    apts.forEach(a => {
+      const base = a.Name
+        .replace(/\s*\(party\)[^)]*\)?/gi, '')
+        .replace(/\s*\(event\)[^)]*\)?/gi, '')
+        .replace(/\s*max:\s*[\d\s\-]+/gi, '')
+        .trim();
+      if (!nameGroups[base]) { nameGroups[base] = []; nameOrder.push(base); }
+      nameGroups[base].push(a);
+    });
+
+    let html = '<option value="">— Select Apartment —</option>';
+
+    nameOrder.forEach(baseName => {
+      const group = nameGroups[baseName];
+      if (group.length === 1) {
+        const a = group[0];
+        // Label: "4BR apartment Flat 1 (Emina) — 4BR — ₦220,000/night"
+        const typeLabel = a.Type ? ' [' + escapeHtml(a.Type) + ']' : '';
+        html += `<option value="${escapeHtml(a.ApartmentID)}"
+          data-rate="${a.DailyRate||0}" data-caution="${a.CautionFee||0}"
+          data-cleaning="${a.CleaningFee||0}" data-party="${a.PartyFee||0}"
+          data-extraguest="${a.ExtraGuestFee||0}" data-name="${escapeHtml(a.Name)}"
+          data-branch="${escapeHtml(a.Branch||'')}"
+          >${escapeHtml(a.Name)}${typeLabel} — ${fmtN(a.DailyRate)}/night</option>`;
+      } else {
+        // Multiple variants — use optgroup with base name, show Type + config in each option
+        html += `<optgroup label="🏠 ${escapeHtml(baseName)}">`;
+        // Sort by DailyRate ascending
+        const sorted = group.slice().sort((x,y) => parseFloat(x.DailyRate||0) - parseFloat(y.DailyRate||0));
+        sorted.forEach(a => {
+          // Config label = Type + any party suffix
+          const typePart  = a.Type || '';
+          const partySuffix = a.Name.replace(baseName, '').replace(/^[\s\-–:,(]+|[\s),]+$/g,'').trim();
+          const configLabel = partySuffix
+            ? typePart + ' · ' + partySuffix
+            : typePart || 'Standard';
+          html += `<option value="${escapeHtml(a.ApartmentID)}"
+            data-rate="${a.DailyRate||0}" data-caution="${a.CautionFee||0}"
+            data-cleaning="${a.CleaningFee||0}" data-party="${a.PartyFee||0}"
+            data-extraguest="${a.ExtraGuestFee||0}" data-name="${escapeHtml(a.Name)}"
+            data-branch="${escapeHtml(a.Branch||'')}"
+            >${escapeHtml(configLabel)} — ${fmtN(a.DailyRate)}/night</option>`;
+        });
+        html += '</optgroup>';
+      }
+    });
+
+    sel.innerHTML = html;
+  } catch (e) { console.error('loadApartmentSelect:', e); }
 }
 
 async function loadInventorySelect(elId) {
@@ -4723,52 +5356,86 @@ async function loadInventorySelect(elId) {
   } catch (e) {}
 }
 
+function calcNightsFromDates() {
+  const ci  = document.getElementById('bk-checkin')?.value;
+  const co  = document.getElementById('bk-checkout')?.value;
+  if (!ci || !co) return 0;
+  const diff = (new Date(co) - new Date(ci)) / 86400000;
+  return diff > 0 ? Math.round(diff) : 0;
+}
+
 function updateBookingPrice() {
+  // Only auto-calculate price in NEW booking mode
+  // In EDIT mode, the user controls the negotiated price directly — don't overwrite
+  const editId = document.getElementById('bk-id')?.value;
+  if (editId) {
+    // Edit mode — just update the total display, don't touch negotiated price
+    updateBookingTotal();
+    return;
+  }
+  // New booking — auto-fill from apartment rate × nights
   const sel = document.getElementById('bk-apartment');
-  const opt = sel.options[sel.selectedIndex];
-  if (!opt || !opt.value) return;
-  const rate         = parseFloat(opt.dataset.rate       || 0);
-  const aptCaution   = parseFloat(opt.dataset.caution    || 0);
-  const aptCleaning  = parseFloat(opt.dataset.cleaning   || 0);
-  const aptParty     = parseFloat(opt.dataset.party      || 0);
-  const aptExtraGuest= parseFloat(opt.dataset.extragust  || 0);
-  const inDate  = document.getElementById('bk-checkin').value;
-  const outDate = document.getElementById('bk-checkout').value;
-  if (!rate || !inDate || !outDate) return;
-  const nights   = Math.max(1, Math.round((new Date(outDate) - new Date(inDate)) / 86400000));
-  const standard = rate * nights;
-  document.getElementById('bk-standard').value = fmtN(standard);
-  const negotiated = parseFloat(document.getElementById('bk-negotiated').value) || standard;
-  if (!document.getElementById('bk-negotiated').value) document.getElementById('bk-negotiated').value = standard;
-  const discPct = standard > 0 ? (((standard - negotiated) / standard) * 100).toFixed(1) : 0;
-  document.getElementById('bk-discount').value = discPct + '%';
-  // Auto-fill fees from apartment defaults
-  const cautionEl = document.getElementById('bk-caution');
-  const cleanEl   = document.getElementById('bk-cleaning');
-  const partyEl   = document.getElementById('bk-party');
-  const extraEl   = document.getElementById('bk-extra-guest');
-  if (cautionEl && !cautionEl.value) cautionEl.value = aptCaution || '';
-  if (cleanEl   && !cleanEl.value)   cleanEl.value   = aptCleaning || '';
-  if (partyEl   && !partyEl.value)   partyEl.value   = aptParty > 0 ? aptParty : '';
-  if (extraEl   && !extraEl.value)   extraEl.value   = aptExtraGuest || '';
+  const opt = sel?.options[sel?.selectedIndex];
+  if (!opt || !opt.value) { updateBookingTotal(); return; }
+  const nights  = calcNightsFromDates() || 1;
+  const rate    = parseFloat(opt.dataset.rate    || 0);
+  const caution = parseFloat(opt.dataset.caution || 0);
+  const cleaning= parseFloat(opt.dataset.cleaning|| 0);
+  // Always recalculate standard price from rate × nights
+  const stdVal  = rate * nights;
+  const stdEl   = document.getElementById('bk-standard');
+  const negEl   = document.getElementById('bk-negotiated');
+  const nightsEl= document.getElementById('bk-nights');
+  if (stdEl)   stdEl.value   = stdVal;
+  if (negEl)   negEl.value   = stdVal;   // always set — user can override after
+  if (nightsEl)nightsEl.value= nights;
+  // Auto-fill fees from apartment data (only if currently 0 or empty)
+  const cautionEl  = document.getElementById('bk-caution');
+  const cleaningEl = document.getElementById('bk-cleaning');
+  if (cautionEl  && (!cautionEl.value  || cautionEl.value  === '0')) cautionEl.value  = caution;
+  if (cleaningEl && (!cleaningEl.value || cleaningEl.value === '0')) cleaningEl.value = cleaning;
   updateBookingTotal();
 }
 
 function updateBookingTotal() {
-  const accom      = parseFloat(document.getElementById('bk-negotiated')?.value) || 0;
+  const negotiated = parseFloat(document.getElementById('bk-negotiated')?.value) || 0;
   const caution    = parseFloat(document.getElementById('bk-caution')?.value)    || 0;
   const cleaning   = parseFloat(document.getElementById('bk-cleaning')?.value)   || 0;
   const party      = parseFloat(document.getElementById('bk-party')?.value)      || 0;
   const extraGuest = parseFloat(document.getElementById('bk-extra-guest')?.value)|| 0;
-  const other      = parseFloat(document.getElementById('bk-other-fees')?.value) || 0;
-  const otherFees  = cleaning + party + extraGuest + other;
-  const grand      = accom + caution + otherFees;
-  const fmt = v => v > 0 ? fmtN(v) : '₦0';
-  const el = id => document.getElementById(id);
-  if (el('bk-total-accom'))   el('bk-total-accom').textContent   = fmt(accom);
-  if (el('bk-total-caution')) el('bk-total-caution').textContent = caution > 0 ? fmtN(caution)+' (refundable)' : '₦0';
-  if (el('bk-total-other'))   el('bk-total-other').textContent   = fmt(otherFees);
-  if (el('bk-grand-total'))   el('bk-grand-total').textContent   = fmt(grand);
+  const otherFees  = parseFloat(document.getElementById('bk-other-fees')?.value) || 0;
+
+  const total = negotiated + caution + cleaning + party + extraGuest + otherFees;
+
+  const totalEl = document.getElementById('bk-total-charges');
+  if (totalEl) totalEl.textContent = fmtN(total);
+
+  // Balance preview — works in both new and edit mode
+  const editId = document.getElementById('bk-id')?.value;
+  const balPreview = document.getElementById('bk-balance-preview');
+  if (editId) {
+    const booking = (APP.cache.bookings||[]).find(b => b.BookingID === editId);
+    if (booking && balPreview) {
+      const amountPaid    = parseFloat(booking.AmountPaid || 0);
+      const accommodation = negotiated + cleaning + party + extraGuest + otherFees;
+      // New balance = new accommodation total - what's already been paid
+      const newBalance    = Math.max(0, accommodation - amountPaid);
+      const oldBalance    = parseFloat(booking.Balance || 0);
+      const diff          = oldBalance - newBalance;
+      balPreview.style.display = 'block';
+      balPreview.innerHTML =
+        `<i class="fas fa-calculator" style="color:var(--gold);margin-right:6px"></i>` +
+        `Paid so far: <strong>${fmtN(amountPaid)}</strong> &nbsp;|&nbsp; ` +
+        `New accommodation: <strong>${fmtN(accommodation)}</strong> &nbsp;→&nbsp; ` +
+        `<strong style="color:${newBalance>0?'var(--rose)':'var(--emerald)'}">` +
+        `New Balance: ${fmtN(newBalance)}</strong>` +
+        `${newBalance<=0?' &nbsp;<span class="badge badge-emerald">✓ Settled</span>':''}` +
+        `${diff!==0?` <span style="color:${diff>0?'var(--emerald)':'var(--rose)'}">` +
+        `(${diff>0?'-':'+'}${fmtN(Math.abs(diff))} vs current)</span>`:''}`;
+    }
+  } else if (balPreview) {
+    balPreview.style.display = 'none';
+  }
 }
 
 // (submitBooking merged into unified version below)
@@ -4809,30 +5476,87 @@ async function loadApartments() {
     APP.cache.apartments = data;
     const counts = { Available: 0, Occupied: 0, Maintenance: 0 };
     data.forEach(a => { if (counts[a.Status] !== undefined) counts[a.Status]++; });
+    // Count unique base apartments (deduplicate rate variants)
+    const uniqueBaseApts = (() => {
+      const seen = {};
+      data.forEach(a => {
+        const key = a.BaseApartmentID ||
+          String(a.Name||'').replace(/\(party\)[^)]*\)?/gi,'').replace(/max:\s*[\d\s-]+/gi,'').trim() ||
+          a.ApartmentID;
+        if (!seen[key]) seen[key] = a;
+      });
+      return Object.values(seen);
+    })();
     document.getElementById('apt-status-grid').innerHTML = `
-      ${kpiCard('Total', data.length, '', 'fa-building', 'gold')}
-      ${kpiCard('Available', counts.Available, '', 'fa-door-open', 'emerald')}
-      ${kpiCard('Occupied', counts.Occupied, '', 'fa-bed', 'sky')}
-      ${kpiCard('Maintenance', counts.Maintenance, '', 'fa-wrench', 'amber')}`;
+      ${kpiCard('Apartments', uniqueBaseApts.length, 'Unique units', 'fa-building', 'gold')}
+      ${kpiCard('Available', counts.Available || 0, '', 'fa-door-open', 'emerald')}
+      ${kpiCard('Occupied', counts.Occupied || 0, '', 'fa-bed', 'sky')}
+      ${kpiCard('Maintenance', counts.Maintenance || 0, '', 'fa-wrench', 'rose')}
+    `;
     if (data.length === 0) { body.innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="fas fa-building"></i><p>No apartments yet</p></div></td></tr>`; return; }
-    body.innerHTML = data.map(a => `<tr>
-      <td><code style="color:var(--gold);font-size:0.78rem">${escapeHtml(a.ApartmentID)}</code></td>
-      <td>
-        <strong>${escapeHtml(a.Name)}</strong>
-        ${a.Description ? `<br><span style="font-size:0.73rem;color:var(--text3)">${escapeHtml(a.Description)}</span>` : ''}
-      </td>
-      <td>${escapeHtml(a.Type||'—')}</td>
-      <td>${a.Branch ? `<span class="badge badge-sky" style="font-size:0.7rem">${escapeHtml(a.Branch)}</span>` : '—'}</td>
-      <td style="font-weight:600">${fmtN(a.DailyRate)}</td>
-      <td>${a.CautionFee > 0 ? fmtN(a.CautionFee) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td>${a.CleaningFee > 0 ? fmtN(a.CleaningFee) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td>${a.PartyFee > 0 ? fmtN(a.PartyFee) : '<span style="color:var(--text3)">—</span>'}</td>
-      <td>${statusBadge(a.Status)}</td>
-      <td style="white-space:nowrap">
-        <button class="btn btn-secondary btn-icon btn-sm" title="Edit" onclick="editApartment('${a.ApartmentID}')"><i class="fas fa-pen"></i></button>
-        ${isAdminOrMgmt() ? `<button class="btn btn-rose btn-icon btn-sm" title="Delete" onclick="confirmDelete('apartment','${a.ApartmentID}','apartment: ${escapeHtml(a.Name||'')}')"><i class="fas fa-trash"></i></button>` : ''}
-      </td>
-    </tr>`).join('');
+    // Group apartments by base name (strip rate suffixes)
+    const aptGroups = {};
+    const aptOrder  = [];
+    data.forEach(a => {
+      const base = a.Name
+        .replace(/\s*\(party\)[^)]*\)?/gi,'')
+        .replace(/\s*max:\s*[\d\s\-]+/gi,'')
+        .trim();
+      if (!aptGroups[base]) { aptGroups[base] = []; aptOrder.push(base); }
+      aptGroups[base].push(a);
+    });
+
+    body.innerHTML = aptOrder.map(base => {
+      const group = aptGroups[base];
+      const first = group[0];
+      const isMulti = group.length > 1;
+      const groupId = 'apt-grp-' + first.ApartmentID.replace(/[^a-z0-9]/gi,'');
+
+      const baseRow = `<tr style="cursor:${isMulti?'pointer':'default'}" ${isMulti?`onclick="toggleAptGroup('${groupId}')"`:''}">
+        <td><code style="color:var(--gold);font-size:0.78rem">${escapeHtml(first.ApartmentID)}</code></td>
+        <td>
+          <strong>${escapeHtml(base)}</strong>
+          ${isMulti ? `<span class="badge badge-sky" style="font-size:0.68rem;margin-left:6px">${group.length} rates</span>` : ''}
+          ${first.Description ? `<br><span style="font-size:0.73rem;color:var(--text3)">${escapeHtml(first.Description)}</span>` : ''}
+        </td>
+        <td>${escapeHtml(first.Type||'—')}</td>
+        <td>${first.Branch ? `<span class="badge badge-sky" style="font-size:0.7rem">${escapeHtml(first.Branch)}</span>` : '—'}</td>
+        <td style="font-weight:600">${isMulti ? `<span style="color:var(--text3);font-size:0.8rem">from </span>${fmtN(Math.min(...group.map(a=>parseFloat(a.DailyRate||0))))}` : fmtN(first.DailyRate)}</td>
+        <td>${first.CautionFee > 0 ? fmtN(first.CautionFee) : '—'}</td>
+        <td>${first.CleaningFee > 0 ? fmtN(first.CleaningFee) : '—'}</td>
+        <td>${first.PartyFee > 0 ? fmtN(first.PartyFee) : '—'}</td>
+        <td>${statusBadge(first.Status)}</td>
+        <td style="white-space:nowrap">
+          ${isMulti ? `<button class="btn btn-secondary btn-sm" style="font-size:0.72rem" onclick="event.stopPropagation();toggleAptGroup('${groupId}')"><i class="fas fa-chevron-down" id="${groupId}-icon"></i></button>` : ''}
+          <button class="btn btn-secondary btn-icon btn-sm" title="Edit" onclick="event.stopPropagation();editApartment('${first.ApartmentID}')"><i class="fas fa-pen"></i></button>
+          ${isAdminOrMgmt() ? `<button class="btn btn-rose btn-icon btn-sm" onclick="event.stopPropagation();confirmDelete('apartment','${first.ApartmentID}','${escapeHtml(base)}')"><i class="fas fa-trash"></i></button>` : ''}
+        </td>
+      </tr>`;
+
+      const variantRows = isMulti ? group.map(a => {
+        const rateLabel = a.RateType || a.Name.replace(base,'').replace(/^[\s\-–:,\(]+|[\s\)\,]+$/g,'').trim() || 'Standard';
+        return `<tr id="${groupId}" style="display:none;background:var(--bg3)">
+          <td style="padding-left:24px"><code style="color:var(--text3);font-size:0.72rem">${escapeHtml(a.ApartmentID)}</code></td>
+          <td style="padding-left:28px">
+            <span style="color:var(--text3);margin-right:6px">↳</span>
+            <span style="font-size:0.82rem">${escapeHtml(rateLabel)}</span>
+            ${a.MaxGuests ? `<span style="font-size:0.72rem;color:var(--text3)"> · Max ${a.MaxGuests} guests</span>` : ''}
+          </td>
+          <td>—</td><td>—</td>
+          <td style="font-weight:600;color:var(--gold)">${fmtN(a.DailyRate)}</td>
+          <td>${a.CautionFee > 0 ? fmtN(a.CautionFee) : '—'}</td>
+          <td>${a.CleaningFee > 0 ? fmtN(a.CleaningFee) : '—'}</td>
+          <td>—</td>
+          <td>${statusBadge(a.Status)}</td>
+          <td style="white-space:nowrap">
+            <button class="btn btn-secondary btn-icon btn-sm" onclick="editApartment('${a.ApartmentID}')"><i class="fas fa-pen"></i></button>
+            ${isAdminOrMgmt() ? `<button class="btn btn-rose btn-icon btn-sm" onclick="confirmDelete('apartment','${a.ApartmentID}','${escapeHtml(a.Name)}')"><i class="fas fa-trash"></i></button>` : ''}
+          </td>
+        </tr>`;
+      }).join('') : '';
+
+      return baseRow + variantRows;
+    }).join('');
   } catch (err) { body.innerHTML = `<tr><td colspan="7" style="color:var(--rose);text-align:center;padding:30px">${escapeHtml(err.message)}</td></tr>`; }
 }
 async function submitApartment() {
@@ -4852,12 +5576,113 @@ async function submitApartment() {
     managerPhone:  document.getElementById('apt-manager-phone')?.value.trim() || '',
     status:        document.getElementById('apt-status').value,
     description:   document.getElementById('apt-desc').value,
+    BedConfigs:    getBedConfigsJson(),
+    ImageURL:      document.getElementById('apt-image-url1')?.value?.trim() || '',
+    ImageURL2:     document.getElementById('apt-image-url2')?.value?.trim() || '',
+    ImageURL3:     document.getElementById('apt-image-url3')?.value?.trim() || '',
+    Amenities:     document.getElementById('apt-amenities')?.value?.trim() || '',
   };
   if (!data.name || !data.dailyRate) { showToast('Name and rate required', 'error'); return; }
-  try { await api('createApartment', data); showToast('Apartment added', 'success'); closeModal('apartment-modal'); loadApartments(); }
+  try { await api('createApartment', data); showToast('Apartment added', 'success'); closeModal('apartment-modal'); APP.cache.apartments=null; loadApartments(); }
   catch (err) { showToast(err.message, 'error'); }
 }
-function editApartment(id) { showToast('Edit feature coming soon', 'info'); }
+function editApartment(id) {
+  const apt = (APP.cache.apartments||[]).find(a => a.ApartmentID === id);
+  if (!apt) { showToast('Apartment not found — refresh page', 'error'); return; }
+
+  // Pre-fill modal
+  document.getElementById('apt-name').value         = apt.Name          || '';
+  document.getElementById('apt-type').value         = apt.Type          || 'Studio';
+  document.getElementById('apt-floor').value        = apt.Floor         || '';
+  document.getElementById('apt-capacity').value     = apt.Capacity      || 2;
+  document.getElementById('apt-rate').value         = apt.DailyRate     || '';
+  document.getElementById('apt-status').value       = apt.Status        || 'Available';
+  document.getElementById('apt-desc').value         = apt.Description   || '';
+  if (document.getElementById('apt-caution'))      document.getElementById('apt-caution').value       = apt.CautionFee    || 0;
+  if (document.getElementById('apt-cleaning'))     document.getElementById('apt-cleaning').value      = apt.CleaningFee   || 0;
+  if (document.getElementById('apt-party'))        document.getElementById('apt-party').value         = apt.PartyFee      || 0;
+  if (document.getElementById('apt-extra-guest'))  document.getElementById('apt-extra-guest').value   = apt.ExtraGuestFee || 0;
+  if (document.getElementById('apt-branch'))       document.getElementById('apt-branch').value        = apt.Branch        || '';
+  if (document.getElementById('apt-manager-name')) document.getElementById('apt-manager-name').value  = apt.ManagerName   || '';
+  if (document.getElementById('apt-manager-email'))document.getElementById('apt-manager-email').value = apt.ManagerEmail  || '';
+  if (document.getElementById('apt-manager-phone'))document.getElementById('apt-manager-phone').value = apt.ManagerPhone  || '';
+
+  // Load bed configs
+  loadBedConfigsIntoModal(apt.BedConfigs || '');
+  // Load photos
+  const u1 = document.getElementById('apt-image-url1'); if(u1) u1.value = apt.ImageURL || '';
+  const u2 = document.getElementById('apt-image-url2'); if(u2) u2.value = apt.ImageURL2 || '';
+  const u3 = document.getElementById('apt-image-url3'); if(u3) u3.value = apt.ImageURL3 || '';
+  // Show previews
+  document.getElementById('photo-previews').innerHTML = '';
+  ['apt-image-url1','apt-image-url2','apt-image-url3'].forEach((id,i)=>{
+    const v = document.getElementById(id)?.value?.trim();
+    if(v) renderPhotoPreview(v, i, 'Photo '+(i+1));
+  });
+  // Switch to URL tab (existing photos are URLs)
+  switchPhotoTab('url');
+  // Load amenities
+  loadAmenitiesIntoModal(apt.Amenities || '');
+
+  // Store edit ID and open
+  let hiddenId = document.getElementById('apt-edit-id');
+  if (!hiddenId) {
+    hiddenId = document.createElement('input');
+    hiddenId.type = 'hidden';
+    hiddenId.id   = 'apt-edit-id';
+    document.getElementById('apartment-modal')?.querySelector('.modal-body').appendChild(hiddenId);
+  }
+  hiddenId.value = id;
+
+  // Update modal title and button
+  const modalTitle = document.querySelector('#apartment-modal .modal-header h2');
+  if (modalTitle) modalTitle.textContent = 'Edit Apartment';
+  const saveBtn = document.querySelector('#apartment-modal .btn-primary');
+  if (saveBtn) saveBtn.onclick = submitApartmentEdit;
+
+  openModal('apartment-modal');
+}
+
+async function submitApartmentEdit() {
+  const id = document.getElementById('apt-edit-id')?.value;
+  if (!id) { submitApartment(); return; }
+
+  const payload = {
+    apartmentId:   id,
+    name:          document.getElementById('apt-name').value.trim(),
+    type:          document.getElementById('apt-type').value,
+    floor:         document.getElementById('apt-floor').value,
+    capacity:      parseInt(document.getElementById('apt-capacity').value) || 1,
+    dailyRate:     parseFloat(document.getElementById('apt-rate').value)   || 0,
+    cautionFee:    parseFloat(document.getElementById('apt-caution')?.value)      || 0,
+    cleaningFee:   parseFloat(document.getElementById('apt-cleaning')?.value)     || 0,
+    partyFee:      parseFloat(document.getElementById('apt-party')?.value)        || 0,
+    extraGuestFee: parseFloat(document.getElementById('apt-extra-guest')?.value)  || 0,
+    branch:        document.getElementById('apt-branch')?.value.trim()        || '',
+    managerName:   document.getElementById('apt-manager-name')?.value.trim()  || '',
+    managerEmail:  document.getElementById('apt-manager-email')?.value.trim() || '',
+    managerPhone:  document.getElementById('apt-manager-phone')?.value.trim() || '',
+    status:        document.getElementById('apt-status').value,
+    description:   document.getElementById('apt-desc').value,
+    BedConfigs:    getBedConfigsJson(),
+  };
+
+  if (!payload.name || !payload.dailyRate) { showToast('Name and rate required', 'error'); return; }
+  try {
+    await api('updateApartment', payload);
+    showToast('Apartment updated', 'success');
+    closeModal('apartment-modal');
+    APP.cache.apartments = null;
+    loadApartments();
+    // Reset modal for next new apartment
+    const modalTitle = document.querySelector('#apartment-modal .modal-header h2');
+    if (modalTitle) modalTitle.textContent = 'Add Apartment';
+    const saveBtn = document.querySelector('#apartment-modal .btn-primary');
+    if (saveBtn) saveBtn.onclick = submitApartment;
+    const hiddenId = document.getElementById('apt-edit-id');
+    if (hiddenId) hiddenId.value = '';
+  } catch(err) { showToast(err.message, 'error'); }
+}
 
 // ─── Guests ────────────────────────────────────────────────
 async function loadGuests() {
@@ -5266,7 +6091,9 @@ async function loadRestaurant() {
   body.innerHTML = `<tr><td colspan="8" class="page-loader"><div class="spinner"></div></td></tr>`;
   try {
     const data = await api('getRestaurant', {});
+    APP.cache.restaurant = data || [];      // ← cache it so editRestaurantSale can find records
     if (!data || data.length === 0) { body.innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="fas fa-utensils"></i><p>No sales yet</p></div></td></tr>`; return; }
+    const canEdit = isAdminOrMgmt();       // ← evaluate once outside template literal
     body.innerHTML = data.map(s => `<tr>
       <td><code style="color:var(--gold);font-size:0.78rem">${escapeHtml(s.SaleID)}</code></td>
       <td>${fmtDate(s.Date)}</td>
@@ -5276,20 +6103,36 @@ async function loadRestaurant() {
       <td style="color:var(--emerald);font-weight:600">${fmtN(s.Amount)}</td>
       <td>${escapeHtml(s.PaymentMethod||'')}</td>
       <td>${escapeHtml(s.ServingStaff||'')}</td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-icon btn-sm" onclick="editRestaurantSale('${escapeHtml(s.SaleID)}')" title="Edit"><i class="fas fa-pen"></i></button>
+        ${canEdit ? `<button class="btn btn-rose btn-icon btn-sm" onclick="confirmDelete('restaurantSale','${escapeHtml(s.SaleID)}','${escapeHtml(s.Items||s.SaleID)}')" title="Delete"><i class="fas fa-trash"></i></button>` : ''}
+      </td>
     </tr>`).join('');
   } catch (err) { body.innerHTML = `<tr><td colspan="8" style="color:var(--rose);text-align:center;padding:30px">${escapeHtml(err.message)}</td></tr>`; }
 }
 async function submitSale() {
+  // Check if in edit mode
+  const editId = document.getElementById('rest-edit-id')?.value;
+  if (editId) { await submitRestaurantEdit(); return; }
+
   const data = {
-    Type: document.getElementById('sale-type').value,
-    SalesChannel: document.getElementById('sale-channel').value,
-    Amount: parseFloat(document.getElementById('sale-amount').value),
+    Type:          document.getElementById('sale-type').value,
+    SalesChannel:  document.getElementById('sale-channel').value,
+    Amount:        parseFloat(document.getElementById('sale-amount').value),
     PaymentMethod: document.getElementById('sale-method').value,
-    Date: document.getElementById('sale-date').value || new Date().toISOString().split('T')[0],
-    Items: document.getElementById('sale-items').value,
+    Date:          document.getElementById('sale-date').value || new Date().toISOString().split('T')[0],
+    Items:         document.getElementById('sale-items').value,
+    ServingStaff:  document.getElementById('sale-staff')?.value?.trim() || APP.user?.name || '',
+    Notes:         document.getElementById('sale-notes')?.value?.trim() || '',
   };
   if (!data.Amount) { showToast('Amount required', 'error'); return; }
-  try { await api('addSale', data); showToast('Sale recorded', 'success'); closeModal('sale-modal'); loadRestaurant(); }
+  try {
+    await api('addSale', data);
+    showToast('Sale recorded', 'success');
+    closeModal('sale-modal');
+    APP.cache.restaurant = null;
+    loadRestaurant();
+  }
   catch (err) { showToast(err.message, 'error'); }
 }
 
@@ -7501,42 +8344,70 @@ let _searchTimer = null;
 // Open booking modal pre-filled for editing
 async function openEditBookingModal(bookingId) {
   const booking = (APP.cache.bookings||[]).find(b => b.BookingID === bookingId);
-  if (!booking) { showToast('Booking not found in cache — refresh bookings first', 'error'); return; }
-  // Set edit mode BEFORE opening modal (so openModal sees bk-id is set)
+  if (!booking) { showToast('Booking not found — refresh page first', 'error'); return; }
+
   document.getElementById('bk-id').value = bookingId;
   document.getElementById('booking-modal-title').textContent = 'Edit Booking';
-  // Pre-fill fields
-  document.getElementById('bk-name').value       = booking.GuestName    || '';
-  document.getElementById('bk-phone').value      = booking.Phone        || '';
-  document.getElementById('bk-email').value      = booking.Email        || '';
-  document.getElementById('bk-natid').value      = booking.NationalID   || '';
-  document.getElementById('bk-notes').value      = booking.SpecialRequests || '';
-  document.getElementById('bk-reason').value     = booking.DiscountReason   || '';
-  document.getElementById('bk-caution').value    = booking.CautionFee   || '';
-  document.getElementById('bk-cleaning').value   = booking.CleaningFee  || '';
-  document.getElementById('bk-party').value      = booking.PartyFee     || '';
-  document.getElementById('bk-extra-guest').value= booking.ExtraGuestFee|| '';
-  document.getElementById('bk-other-fees').value = booking.OtherFees    || '';
-  if (document.getElementById('bk-source')) document.getElementById('bk-source').value = booking.Source||'Direct';
-  // Set channel
+
+  // Guest info
+  document.getElementById('bk-name').value        = booking.GuestName      || '';
+  document.getElementById('bk-phone').value       = booking.Phone          || '';
+  document.getElementById('bk-email').value       = booking.Email          || '';
+  document.getElementById('bk-natid').value       = booking.NationalID     || '';
+  document.getElementById('bk-notes').value       = booking.SpecialRequests|| '';
+  document.getElementById('bk-reason').value      = booking.DiscountReason || '';
+  document.getElementById('bk-other-fees-note').value = booking.OtherFeesNote || '';
+
+  // Fees — set explicitly so 0 shows as 0 not blank
+  document.getElementById('bk-caution').value     = parseFloat(booking.CautionFee   ||0);
+  document.getElementById('bk-cleaning').value    = parseFloat(booking.CleaningFee  ||0);
+  document.getElementById('bk-party').value       = parseFloat(booking.PartyFee     ||0);
+  document.getElementById('bk-extra-guest').value = parseFloat(booking.ExtraGuestFee||0);
+  document.getElementById('bk-other-fees').value  = parseFloat(booking.OtherFees    ||0);
+
+  // Channel & source
   const chanEl = document.getElementById('bk-channel');
   if (chanEl && booking.BookingChannel) chanEl.value = booking.BookingChannel;
-  // Set dates and apartment
-  document.getElementById('bk-checkin').value    = booking.CheckIn  ? String(booking.CheckIn).substring(0,10)  : '';
-  document.getElementById('bk-checkout').value   = booking.CheckOut ? String(booking.CheckOut).substring(0,10) : '';
+  const srcEl = document.getElementById('bk-source');
+  if (srcEl) srcEl.value = booking.Source || 'Direct';
+  const spEl = document.getElementById('bk-salesperson');
+  if (spEl) spEl.value = booking.SalesPerson || '';
+
+  // Dates
+  document.getElementById('bk-checkin').value  = booking.CheckIn  ? String(booking.CheckIn).substring(0,10)  : '';
+  document.getElementById('bk-checkout').value = booking.CheckOut ? String(booking.CheckOut).substring(0,10) : '';
+
+  // Apartment dropdown
   await loadApartmentSelect('bk-apartment');
   const aptSel = document.getElementById('bk-apartment');
   if (aptSel && booking.ApartmentID) {
-    for (let i=0;i<aptSel.options.length;i++) {
+    for (let i=0; i<aptSel.options.length; i++) {
       if (aptSel.options[i].value === booking.ApartmentID) { aptSel.selectedIndex=i; break; }
     }
   }
-  document.getElementById('bk-negotiated').value = booking.NegotiatedPrice || '';
-  updateBookingPrice();
-  // Render upload zone
+
+  // Set negotiated price LAST — after apartment is selected so updateBookingPrice() doesn't overwrite it
+  document.getElementById('bk-negotiated').value = parseFloat(booking.NegotiatedPrice||0);
+
+  // Show balance preview
+  updateBookingTotal();
+  const balPrev = document.getElementById('bk-balance-preview');
+  if (balPrev) {
+    const paid = parseFloat(booking.AmountPaid||0);
+    const neg  = parseFloat(booking.NegotiatedPrice||0);
+    const bal  = parseFloat(booking.Balance||0);
+    balPrev.style.display = 'block';
+    balPrev.innerHTML =
+      `<i class="fas fa-info-circle" style="color:var(--gold);margin-right:6px"></i>` +
+      `Current: Charged <strong>${fmtN(neg)}</strong> · Paid <strong>${fmtN(paid)}</strong> · ` +
+      `Balance <strong style="color:${bal>0?'var(--rose)':'var(--emerald)'}">${fmtN(bal)}</strong>` +
+      ` — edit amounts above to update`;
+  }
+
+  // Upload zone
   const c2 = document.getElementById('bk-id-file-container');
   if (c2) renderFileUpload(c2,'bk-id-file','Upload/Replace Guest ID (optional)','image/*,application/pdf');
-  // Open modal after all fields set
+
   document.getElementById('booking-modal').classList.add('active');
 }
 
@@ -7599,16 +8470,33 @@ function renderGuestResults(guests) {
 
 function fillGuestDetails(guest) {
   if (!guest) return;
-  document.getElementById('bk-name').value  = guest.Name  || '';
-  document.getElementById('bk-phone').value = guest.Phone || '';
-  document.getElementById('bk-email').value = guest.Email || '';
+  document.getElementById('bk-name').value  = guest.Name       || '';
+  document.getElementById('bk-phone').value = guest.Phone      || '';
+  document.getElementById('bk-email').value = guest.Email      || '';
   document.getElementById('bk-natid').value = guest.NationalID || '';
+
+  // Pre-fill last apartment if known
+  const lastApt = guest.LastApartment || guest.ApartmentID;
+  if (lastApt) {
+    const aptSel = document.getElementById('bk-apartment');
+    if (aptSel) {
+      for (let i=0; i<aptSel.options.length; i++) {
+        if (aptSel.options[i].text.includes(lastApt) || aptSel.options[i].value === lastApt) {
+          aptSel.selectedIndex = i;
+          break;
+        }
+      }
+      updateBookingPrice(); // recalculate price after setting apartment
+    }
+  }
+
   // Clear search
-  const searchEl = document.getElementById('bk-guest-search');
-  if (searchEl) searchEl.value = '';
+  const searchEl  = document.getElementById('bk-guest-search');
   const resultsEl = document.getElementById('bk-guest-results');
+  if (searchEl)  searchEl.value = '';
   if (resultsEl) resultsEl.style.display = 'none';
-  showToast('Guest details filled — check the form below', 'success');
+
+  showToast(`Welcome back, ${guest.Name || 'guest'}! Details filled.`, 'success');
 }
 
 // Open extend stay modal
@@ -7662,6 +8550,8 @@ async function submitExtend() {
 
 // submitBooking handles both new and edit mode
 async function submitBooking() {
+  // Check if group booking mode is active
+  if (_groupMode) { await submitGroupBooking(); return; }
   // ── Button state helpers ──
   const saveBtn = document.querySelector('#booking-modal .btn-primary');
   const origLabel = saveBtn?.innerHTML;
@@ -7686,7 +8576,7 @@ async function submitBooking() {
       NationalID:     document.getElementById('bk-natid').value.trim(),
       BookingChannel: document.getElementById('bk-channel').value,
       ApartmentID:    aptSel?.value,
-      ApartmentName:  aptOpt?.text || '',
+      ApartmentName:  aptOpt?.dataset?.name || aptOpt?.text?.split('—')[0].trim() || '',
       CheckIn:        document.getElementById('bk-checkin').value,
       CheckOut:       document.getElementById('bk-checkout').value,
       NegotiatedPrice:parseFloat(document.getElementById('bk-negotiated').value)||0,
@@ -7706,8 +8596,11 @@ async function submitBooking() {
         { inputId: 'bk-id-file', purpose: 'guest-ids', fieldKey: 'IDUploadURL' }
       ]);
       Object.assign(data, uploads);
-      await api('updateBooking', data);
-      showToast('Booking updated', 'success');
+      const res = await api('updateBooking', data);
+      const balMsg = res && res.balance !== undefined
+        ? ' · Balance: ' + fmtN(res.balance)
+        : '';
+      showToast('Booking updated' + balMsg, 'success');
       document.getElementById('bk-id').value = '';
       document.getElementById('booking-modal-title').textContent = 'New Booking';
       closeModal('booking-modal');
@@ -7739,6 +8632,7 @@ async function submitBooking() {
     OtherFees:      parseFloat(document.getElementById('bk-other-fees')?.value)  || 0,
     OtherFeesNote:  document.getElementById('bk-other-fees-note')?.value || '',
     Source:         document.getElementById('bk-source')?.value || 'Direct',
+    SalesPerson:    document.getElementById('bk-salesperson')?.value || APP.user?.name || '',
     DiscountReason: document.getElementById('bk-reason').value.trim(),
     SpecialRequests:document.getElementById('bk-notes').value.trim(),
   };
@@ -8131,14 +9025,15 @@ function isAdminOrMgmt() {
 }
 
 const DELETE_CONFIG = {
-  apartment:   { api: 'deleteApartment',   reload: () => loadApartments(),   label: 'Apartment' },
-  booking:     { api: 'deleteBooking',     reload: () => loadBookings(),     label: 'Booking' },
-  payment:     { api: 'deletePayment',     reload: () => loadPayments(),     label: 'Payment' },
-  expense:     { api: 'deleteExpense',     reload: () => loadExpenses(),     label: 'Expense' },
-  staff:       { api: 'deleteStaff',       reload: () => loadStaff(),        label: 'Staff record' },
-  loan:        { api: 'deleteLoan',        reload: () => loadLoans(),        label: 'Loan' },
-  maintenance: { api: 'deleteMaintIssue',  reload: () => loadMaintenance(),  label: 'Maintenance issue' },
-  inventory:   { api: 'deleteInventoryItem',reload:() => loadInventory(),    label: 'Inventory item' },
+  apartment:      { api: 'deleteApartment',      reload: () => loadApartments(),  label: 'Apartment' },
+  booking:        { api: 'deleteBooking',         reload: () => loadBookings(),    label: 'Booking' },
+  payment:        { api: 'deletePayment',         reload: () => loadPayments(),    label: 'Payment' },
+  expense:        { api: 'deleteExpense',         reload: () => loadExpenses(),    label: 'Expense' },
+  staff:          { api: 'deleteStaff',           reload: () => loadStaff(),       label: 'Staff record' },
+  loan:           { api: 'deleteLoan',            reload: () => loadLoans(),       label: 'Loan' },
+  maintenance:    { api: 'deleteMaintIssue',      reload: () => loadMaintenance(), label: 'Maintenance issue' },
+  inventory:      { api: 'deleteInventoryItem',   reload: () => loadInventory(),   label: 'Inventory item' },
+  restaurantSale: { api: 'deleteRestaurantSale',  reload: () => loadRestaurant(),  label: 'Restaurant sale' },
 };
 
 function confirmDelete(type, id, description) {
@@ -8192,21 +9087,74 @@ async function confirmDelete(type, id, description) {
   const cfg = DELETE_CONFIG[type];
   if (!cfg) { showToast('Unknown record type', 'error'); return; }
 
-  const confirmed = await showConfirm({
-    icon:     '🗑️',
-    title:    'Delete ' + cfg.label + '?',
-    body:     '<strong>' + escapeHtml(description) + '</strong>',
-    warning:  'This action CANNOT be undone. The record will be permanently removed.',
-    okLabel:  'Yes, Delete',
-    okColor:  'rose',
-  });
-  if (!confirmed) return;
+  // Show delete reason modal
+  openDeleteReasonModal(type, id, description, cfg);
+}
+
+function openDeleteReasonModal(type, id, description, cfg) {
+  // Build modal on the fly
+  let modal = document.getElementById('delete-reason-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'delete-reason-modal';
+    modal.className = 'modal-overlay';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:460px">
+        <div class="modal-header">
+          <h2 style="color:var(--rose)"><i class="fas fa-trash" style="margin-right:8px"></i>Delete Record</h2>
+          <button class="modal-close" onclick="closeModal('delete-reason-modal')"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div id="dr-description" style="background:var(--bg3);border-radius:8px;padding:10px 14px;
+            font-size:0.85rem;color:var(--text);margin-bottom:14px;border-left:3px solid var(--rose)"></div>
+          <div class="form-group">
+            <label class="form-label">Reason for Deletion <span style="color:var(--rose)">*</span></label>
+            <textarea class="form-control" id="dr-reason" rows="3"
+              placeholder="Enter the reason for deleting this record..."></textarea>
+          </div>
+          <div style="background:var(--rose-dim,rgba(232,85,85,.1));border:1px solid var(--rose);
+            border-radius:8px;padding:10px 14px;font-size:0.8rem;color:var(--rose);margin-top:10px">
+            <i class="fas fa-exclamation-triangle" style="margin-right:6px"></i>
+            This record will be moved to the <strong>RecycleBin</strong> sheet and can be reviewed by a Super Admin.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('delete-reason-modal')">Cancel</button>
+          <button class="btn btn-rose" id="dr-confirm-btn" onclick="executeDelete()">
+            <i class="fas fa-trash"></i> Confirm Delete
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+  }
+
+  // Store delete context
+  modal._deleteContext = { type, id, description, cfg };
+  document.getElementById('dr-description').textContent = cfg.label + ': ' + description;
+  document.getElementById('dr-reason').value = '';
+  modal.classList.add('active');
+}
+
+async function executeDelete() {
+  const modal = document.getElementById('delete-reason-modal');
+  const ctx   = modal?._deleteContext;
+  if (!ctx) return;
+  const reason = document.getElementById('dr-reason')?.value?.trim();
+  if (!reason) { showToast('Please enter a reason for deletion', 'error'); document.getElementById('dr-reason')?.focus(); return; }
+
+  const btn = document.getElementById('dr-confirm-btn');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spinner" style="width:13px;height:13px;border-width:2px"></span> Deleting...'; }
 
   try {
-    await api(cfg.api, { id: id });
-    showToast(cfg.label + ' deleted', 'success');
-    cfg.reload();
-  } catch(err) { showToast('Delete failed: ' + err.message, 'error'); }
+    await api(ctx.cfg.api, { id: ctx.id, reason: reason, deletedBy: APP.user?.name || '' });
+    closeModal('delete-reason-modal');
+    showToast(ctx.cfg.label + ' deleted and moved to RecycleBin', 'success');
+    ctx.cfg.reload();
+  } catch(err) {
+    showToast('Delete failed: ' + err.message, 'error');
+  } finally {
+    if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-trash"></i> Confirm Delete'; }
+  }
 }
 
 async function appConfirm(message, { icon='⚠️', okLabel='OK', okColor='sky' } = {}) {
@@ -8756,6 +9704,25 @@ function resetTheme() {
 }
 
 function loadThemePage() {
+  const isSuperAdmin = APP.user?.role === 'SuperAdmin';
+  const switcherCard  = document.getElementById('plan-switcher-cards')?.closest('.card');
+  const previewRow    = document.getElementById('plan-preview-row');
+  const switcherTitle = document.getElementById('plan-switcher-title');
+  const switcherSub   = document.getElementById('plan-switcher-sub');
+
+  if (switcherCard) switcherCard.style.display = ''; // always visible now
+  if (isSuperAdmin) {
+    // SuperAdmin: full clickable switcher to demo any plan live
+    if (switcherTitle) switcherTitle.textContent = 'Subscription Plan';
+    if (switcherSub)   switcherSub.textContent   = 'Switch plan to demo features to clients';
+    renderPlanSwitcherUI(true);
+  } else {
+    // Client Admin: read-only view of their current plan + upgrade CTA
+    if (switcherTitle) switcherTitle.textContent = 'Your Subscription Plan';
+    if (switcherSub)   switcherSub.textContent   = 'Preview other plans and request an upgrade';
+    renderPlanSwitcherUI(false);
+  }
+  if (previewRow) previewRow.style.display = isSuperAdmin ? 'none' : 'flex';
   // Load current theme into form fields
   const saved = localStorage.getItem('rr_app_theme');
   const theme = saved ? JSON.parse(saved) : THEME_DEFAULTS;
@@ -8834,6 +9801,1000 @@ async function loadThemeFromBackend() {
     localStorage.setItem('rr_app_theme', JSON.stringify(theme));
     _applyThemeObj(theme);
   } catch(e) {}
+}
+
+
+// ============================================================
+// GROUP / BRANCH BOOKING
+// ============================================================
+let _groupMode = false;
+let _groupApts = []; // all apartments in selected branch
+let _selectedGroupApts = new Set(); // selected apartment IDs
+
+function toggleGroupBooking() {
+  _groupMode = !_groupMode;
+  const panel  = document.getElementById('group-booking-panel');
+  const toggle = document.getElementById('group-toggle');
+  const dot    = document.getElementById('group-toggle-dot');
+  const aptRow = document.getElementById('bk-apartment')?.closest('.form-group') ||
+                 document.getElementById('bk-apartment')?.closest('div');
+
+  if (_groupMode) {
+    toggle.style.background = 'var(--gold)';
+    dot.style.left = '18px';
+    panel.style.display = 'block';
+    // Hide single apartment select
+    const singleAptDiv = document.getElementById('bk-apartment')?.closest('.form-grid > div');
+    if (singleAptDiv) singleAptDiv.style.display = 'none';
+    loadGroupBranches();
+  } else {
+    toggle.style.background = 'var(--border2)';
+    dot.style.left = '2px';
+    panel.style.display = 'none';
+    _selectedGroupApts.clear();
+    // Restore single apartment select
+    const singleAptDiv = document.getElementById('bk-apartment')?.closest('.form-grid > div');
+    if (singleAptDiv) singleAptDiv.style.display = '';
+  }
+}
+
+async function loadGroupBranches() {
+  const sel = document.getElementById('grp-branch');
+  if (!sel) return;
+  try {
+    const apts = APP.cache.apartments || await api('getApartments', {});
+    APP.cache.apartments = apts;
+    const branches = [...new Set(apts.map(a => a.Branch).filter(Boolean))].sort();
+    sel.innerHTML = '<option value="">— Select Branch / Outlet —</option>' +
+      branches.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+  } catch(e) {
+    sel.innerHTML = '<option value="">Could not load branches</option>';
+  }
+}
+
+async function loadBranchApartments() {
+  const branch = document.getElementById('grp-branch')?.value;
+  const listEl = document.getElementById('grp-apt-list');
+  if (!listEl) return;
+  if (!branch) {
+    listEl.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;grid-column:1/-1;padding:8px 0">Select a branch to see apartments</div>';
+    return;
+  }
+  try {
+    const apts = APP.cache.apartments || await api('getApartments', {});
+    _groupApts = apts.filter(a => a.Branch === branch);
+    _selectedGroupApts.clear();
+    renderGroupAptList();
+  } catch(e) {
+    listEl.innerHTML = `<div style="color:var(--rose);grid-column:1/-1">${escapeHtml(e.message)}</div>`;
+  }
+}
+
+function renderGroupAptList() {
+  const listEl = document.getElementById('grp-apt-list');
+  if (!listEl || !_groupApts.length) {
+    if (listEl) listEl.innerHTML = '<div style="color:var(--text3);font-size:0.82rem;grid-column:1/-1;padding:8px 0">No apartments found in this branch</div>';
+    return;
+  }
+  listEl.innerHTML = _groupApts.map((a, idx) => {
+    const isOccupied = a.Status === 'Occupied' || a.Status === 'Maintenance';
+    const isSelected = _selectedGroupApts.has(a.ApartmentID);
+    // Use data-aptid on the div — NOT a <label> — to avoid browser checkbox association by name
+    // Each apartment gets a unique index-based checkbox id to prevent cross-linking
+    const cbId = 'grp-cb-' + idx;
+    const aptClickFn = isOccupied ? '' : `toggleGroupApt('${escapeHtml(a.ApartmentID)}', !_selectedGroupApts.has('${escapeHtml(a.ApartmentID)}'))`;
+    return `<div onclick="${aptClickFn}"
+      style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;
+        cursor:${isOccupied?'not-allowed':'pointer'};user-select:none;
+        background:${isSelected?'var(--gold-dim)':isOccupied?'var(--bg)':'var(--bg2)'};
+        border:1px solid ${isSelected?'var(--gold)':'var(--border)'};
+        opacity:${isOccupied?0.5:1};transition:all .15s">
+      <input type="checkbox" id="${cbId}" ${isSelected?'checked':''} ${isOccupied?'disabled':''}
+        onclick="event.stopPropagation()"
+        onchange="toggleGroupApt('${escapeHtml(a.ApartmentID)}', this.checked)"
+        style="margin-top:3px;accent-color:var(--gold);flex-shrink:0;width:15px;height:15px;cursor:pointer">
+      <div style="min-width:0;flex:1">
+        <div style="font-size:0.82rem;font-weight:600;color:var(--text)">${escapeHtml(a.Name)}</div>
+        <div style="font-size:0.72rem;color:var(--text3)">${escapeHtml(a.Type||'')} · <strong style="color:var(--gold)">${fmtN(a.DailyRate)}/night</strong></div>
+        <div style="font-size:0.69rem;color:var(--text3);margin-top:1px">Caution: ${fmtN(a.CautionFee||0)} · Cleaning: ${fmtN(a.CleaningFee||0)}</div>
+        <div style="font-size:0.7rem;margin-top:3px">
+          <span class="badge ${a.Status==='Available'?'badge-emerald':a.Status==='Occupied'?'badge-rose':'badge-amber'}" style="font-size:0.65rem">${escapeHtml(a.Status||'')}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  updateGroupSummary();
+}
+
+function toggleGroupApt(aptId, checked) {
+  if (checked) _selectedGroupApts.add(aptId);
+  else _selectedGroupApts.delete(aptId);
+  renderGroupAptList(); // re-render to update styles
+  updateGroupSummary();
+}
+
+function selectAllBranchApts() {
+  _groupApts.filter(a => a.Status === 'Available').forEach(a => _selectedGroupApts.add(a.ApartmentID));
+  renderGroupAptList();
+}
+
+function clearBranchApts() {
+  _selectedGroupApts.clear();
+  renderGroupAptList();
+}
+
+function updateGroupSummary() {
+  const selected = _groupApts.filter(a => _selectedGroupApts.has(a.ApartmentID));
+  const summEl   = document.getElementById('grp-summary');
+  if (!summEl) return;
+  if (selected.length === 0) { summEl.style.display = 'none'; return; }
+
+  // Calculate nights from date inputs
+  const inVal  = document.getElementById('bk-checkin')?.value;
+  const outVal = document.getElementById('bk-checkout')?.value;
+  const nights = (inVal && outVal)
+    ? Math.max(1, Math.round((new Date(outVal) - new Date(inVal)) / 86400000))
+    : 1;
+
+  const totalRate    = selected.reduce((s,a) => s + parseFloat(a.DailyRate||0), 0);
+  const totalStandard= totalRate * nights;
+  const totalCaution = selected.reduce((s,a) => s + parseFloat(a.CautionFee||0), 0);
+  const totalCleaning= selected.reduce((s,a) => s + parseFloat(a.CleaningFee||0), 0);
+  const totalCharges = totalStandard + totalCaution + totalCleaning;
+
+  document.getElementById('grp-apt-count').textContent   = selected.length;
+  document.getElementById('grp-total-rate').textContent  = fmtN(totalRate) + '/night';
+  document.getElementById('grp-total-caution').textContent = fmtN(totalCaution);
+
+  // Show detailed breakdown
+  const breakdownEl = document.getElementById('grp-breakdown');
+  if (breakdownEl) {
+    breakdownEl.innerHTML =
+      `<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:8px;font-size:0.79rem">
+        <div><span style="color:var(--text3)">Nights:</span> <strong>${nights}</strong></div>
+        <div><span style="color:var(--text3)">Rate/Night:</span> <strong style="color:var(--gold)">${fmtN(totalRate)}</strong></div>
+        <div><span style="color:var(--text3)">Accommodation:</span> <strong style="color:var(--gold)">${fmtN(totalStandard)}</strong></div>
+        <div><span style="color:var(--text3)">Caution Fee:</span> <strong style="color:var(--amber)">${fmtN(totalCaution)}</strong></div>
+        <div><span style="color:var(--text3)">Cleaning Fee:</span> <strong>${fmtN(totalCleaning)}</strong></div>
+        <div><span style="color:var(--text3)">Total Charges:</span> <strong style="color:var(--emerald);font-size:0.85rem">${fmtN(totalCharges)}</strong></div>
+      </div>`;
+  }
+
+  summEl.style.display = 'block';
+}
+
+// ── Override submitBooking to handle group mode ──
+const _origGroupSubmit = submitBooking;
+// We patch submitBooking at the top to check _groupMode first
+async function submitGroupBooking() {
+  if (!_groupMode) return _origGroupSubmit ? _origGroupSubmit() : null;
+  if (_selectedGroupApts.size === 0) { showToast('Select at least one apartment', 'error'); return; }
+  const name     = document.getElementById('bk-name').value.trim();
+  const phone    = document.getElementById('bk-phone').value.trim();
+  const email    = document.getElementById('bk-email').value.trim();
+  const natid    = document.getElementById('bk-natid').value.trim();
+  const checkin  = document.getElementById('bk-checkin').value;
+  const checkout = document.getElementById('bk-checkout').value;
+  const channel  = document.getElementById('bk-channel').value;
+  const notes    = document.getElementById('bk-notes').value.trim();
+  if (!name || !phone || !checkin || !checkout) {
+    showToast('Fill in guest name, phone and dates', 'error'); return;
+  }
+  const selected = _groupApts.filter(a => _selectedGroupApts.has(a.ApartmentID));
+  const btn = document.querySelector('#booking-modal .btn-primary');
+  if (btn) { btn.disabled=true; btn.innerHTML='<span class="spinner" style="width:14px;height:14px;border-width:2px"></span> Creating ' + selected.length + ' bookings...'; }
+
+  let created = 0, errors = [];
+  for (const apt of selected) {
+    try {
+      await api('createBooking', {
+        GuestName:      name,
+        Phone:          phone,
+        Email:          email,
+        NationalID:     natid,
+        BookingChannel: channel,
+        ApartmentID:    apt.ApartmentID,
+        ApartmentName:  apt.Name,
+        CheckIn:        checkin,
+        CheckOut:       checkout,
+        NegotiatedPrice:parseFloat(apt.DailyRate||0),
+        CautionFee:     parseFloat(apt.CautionFee||0),
+        CleaningFee:    parseFloat(apt.CleaningFee||0),
+        PartyFee:       parseFloat(apt.PartyFee||0),
+        SpecialRequests:notes,
+        Source:         'Group Booking',
+        BookingChannel: channel,
+      });
+      created++;
+    } catch(err) {
+      errors.push(apt.Name + ': ' + err.message);
+    }
+  }
+  if (btn) { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i> Save Booking'; }
+  if (created > 0) {
+    showToast(`${created} booking${created>1?'s':''} created successfully!`, 'success');
+    closeModal('booking-modal');
+    APP.cache.bookings = null;
+    loadBookings();
+    // Reset group mode
+    _groupMode = false;
+    _selectedGroupApts.clear();
+    toggleGroupBooking();
+  }
+  if (errors.length > 0) {
+    showToast('Some failed: ' + errors.join('; '), 'error');
+  }
+}
+
+
+// ============================================================
+// SALES PERFORMANCE
+// ============================================================
+let _spData = [];
+
+async function loadSalesPerformance() {
+  const lbEl   = document.getElementById('sp-leaderboard');
+  const bodyEl = document.getElementById('sp-detail-body');
+
+  // Show instant skeleton while loading
+  if (lbEl && lbEl.innerHTML.includes('spinner')) {} // already showing spinner, leave it
+  else if (lbEl) lbEl.innerHTML = '<div class="page-loader"><div class="spinner"></div></div>';
+
+  try {
+    // Always fetch fresh from backend (sales data must be accurate)
+    let bookings = await api('getBookings', {});
+    if (!Array.isArray(bookings)) bookings = [];
+    APP.cache.bookings = bookings;
+
+    // Populate branch dropdown
+    const branchSel = document.getElementById('sp-branch-filter');
+    if (branchSel) {
+      const branches = [...new Set(bookings.map(b => (b.ApartmentName||'').split('(').pop().replace(')','').trim()).filter(b => b.length > 1))].sort();
+      const currentBranch = branchSel.value;
+      branchSel.innerHTML = '<option value="">All Branches</option>' +
+        branches.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
+      if (currentBranch) branchSel.value = currentBranch;
+    }
+
+    const period = document.getElementById('sp-period')?.value || 'this_month';
+    const branch = document.getElementById('sp-branch-filter')?.value || '';
+    renderSalesPage(bookings, period, branch, lbEl, bodyEl);
+
+  } catch(e) {
+    if (lbEl) lbEl.innerHTML = `<div style="padding:24px;text-align:center;color:var(--rose)">
+      <i class="fas fa-exclamation-circle" style="font-size:1.5rem;display:block;margin-bottom:8px"></i>
+      ${escapeHtml(e.message)}</div>`;
+    if (bodyEl) bodyEl.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:20px">Could not load data</td></tr>';
+  }
+}
+
+function renderSalesPage(bookings, period, branch, lbEl, bodyEl) {
+  lbEl   = lbEl   || document.getElementById('sp-leaderboard');
+  bodyEl = bodyEl || document.getElementById('sp-detail-body');
+  period = (period !== undefined && period !== null) ? period : (document.getElementById('sp-period')?.value || 'all_time');
+  branch = (branch !== undefined && branch !== null) ? branch : (document.getElementById('sp-branch-filter')?.value || '');
+
+  // Date filter
+  const now = new Date(), thisY = now.getFullYear(), thisM = now.getMonth();
+  console.log('[Sales] Total bookings:', bookings.length, 'Period:', period, 'Branch:', branch);
+  const filtered = bookings.filter(b => {
+    if (b.BookingStatus === 'Cancelled') return false;
+    // Branch filter
+    if (branch) {
+      const aptBranch = (b.ApartmentName||'').split('(').pop().replace(')','').trim();
+      const bkBranch  = b.Branch || b.ApartmentBranch || aptBranch;
+      if (!bkBranch.toLowerCase().includes(branch.toLowerCase()) &&
+          !aptBranch.toLowerCase().includes(branch.toLowerCase())) return false;
+    }
+    if (period === 'all_time') return true;
+    // Use CreatedAt — track when booking was MADE, not check-in date
+    const raw = b.CreatedAt || b.createdAt || b.BookingDate || b.CheckIn || '';
+    const ds  = String(raw).substring(0,10);
+    if (!ds || ds === 'undefined') return false;
+    const d = new Date(ds + 'T12:00:00');
+    if (isNaN(d.getTime())) return false;
+    if (period === 'this_month') return d.getFullYear()===thisY && d.getMonth()===thisM;
+    if (period === 'last_month') {
+      const lm=thisM===0?11:thisM-1, ly=thisM===0?thisY-1:thisY;
+      return d.getFullYear()===ly && d.getMonth()===lm;
+    }
+    if (period === 'this_year') return d.getFullYear()===thisY;
+    return true;
+  });
+  console.log('[Sales] Filtered:', filtered.length, '| CreatedAt[0]:', filtered[0]?.CreatedAt, '| SalesPerson[0]:', filtered[0]?.SalesPerson, '| CreatedBy[0]:', filtered[0]?.CreatedBy);
+  _spData = filtered;
+
+  // Group by salesperson
+  if (!filtered.length) {
+    if (lbEl) lbEl.innerHTML = '<div style="padding:28px;text-align:center;color:var(--text3)">' +
+      '<i class="fas fa-chart-bar" style="font-size:2rem;opacity:.3;display:block;margin-bottom:10px"></i>' +
+      '<strong>No bookings found</strong><br>' +
+      '<span style="font-size:0.82rem">Try switching to <b>All Time</b> or check that bookings exist in the sheet.</span>' +
+      '</div>';
+    if (bodyEl) bodyEl.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No data for this period</td></tr>';
+    const set2 = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+    set2('sp-total-rev','₦0'); set2('sp-total-bk','0'); set2('sp-top-name','—'); set2('sp-avg','₦0');
+    return;
+  }
+  const byPerson = {};
+  filtered.forEach(b => {
+    // Use SalesPerson column only — not CreatedBy
+    const sp = String(b.SalesPerson||'').trim() || 'Unassigned';
+    if (!byPerson[sp]) byPerson[sp] = { name:sp, bookings:0, revenue:0, apts:new Set(), guests:new Set() };
+    byPerson[sp].bookings++;
+    byPerson[sp].revenue += parseFloat(b.NegotiatedPrice||0);
+    byPerson[sp].apts.add(b.ApartmentID||'');
+    byPerson[sp].guests.add(b.GuestName||'');
+  });
+  const ranked = Object.values(byPerson).sort((a,b) => b.revenue - a.revenue);
+  const totalRev = ranked.reduce((s,p) => s+p.revenue, 0);
+  const totalBk  = filtered.length;
+  const top      = ranked[0];
+
+  // KPIs
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('sp-total-rev', fmtN(totalRev));
+  set('sp-total-bk',  totalBk);
+  set('sp-top-name',  top ? top.name + ' · ' + fmtN(top.revenue) : '—');
+  set('sp-avg',       totalBk > 0 ? fmtN(Math.round(totalRev/totalBk)) : '₦0');
+
+  // Leaderboard
+  if (lbEl) {
+    if (!ranked.length) {
+      lbEl.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text3)"><i class="fas fa-chart-bar" style="font-size:2rem;opacity:.3;display:block;margin-bottom:10px"></i>No bookings with sales person data for this period.<br><span style="font-size:0.8rem">Assign a Sales Person when creating bookings.</span></div>';
+    } else {
+      lbEl.innerHTML = ranked.map((p, i) => {
+        const pct = totalRev > 0 ? (p.revenue/totalRev*100) : 0;
+        const medals = ['🥇','🥈','🥉'];
+        const medal  = medals[i] || `<span style="color:var(--text3);font-size:0.85rem">#${i+1}</span>`;
+        const initials = p.name.split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase();
+        const barColor = i===0?'var(--gold)':i===1?'var(--sky)':'var(--emerald)';
+        return `<div style="display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
+          <div style="font-size:1.4rem;width:32px;text-align:center;flex-shrink:0">${medal}</div>
+          <div style="width:38px;height:38px;border-radius:50%;background:var(--gold-dim);border:2px solid ${i===0?'var(--gold)':'var(--border)'};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.8rem;color:var(--gold);flex-shrink:0">${escapeHtml(initials)}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:0.9rem">${escapeHtml(p.name)}</div>
+            <div style="font-size:0.73rem;color:var(--text3);margin-top:1px">${p.bookings} booking${p.bookings!==1?'s':''} &nbsp;·&nbsp; ${p.apts.size} apt${p.apts.size!==1?'s':''} &nbsp;·&nbsp; ${p.guests.size} guest${p.guests.size!==1?'s':''}</div>
+            <div style="margin-top:6px;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden">
+              <div style="width:${pct.toFixed(1)}%;height:6px;background:${barColor};border-radius:3px"></div>
+            </div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;min-width:100px">
+            <div style="font-weight:700;font-size:1rem;color:var(--gold)">${fmtN(p.revenue)}</div>
+            <div style="font-size:0.72rem;color:var(--text3)">${pct.toFixed(1)}% of total</div>
+            <div style="font-size:0.7rem;color:var(--text3)">avg/bk: ${fmtN(p.bookings > 0 ? Math.round(p.revenue / p.bookings) : 0)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+  }
+  renderSalesDetail(filtered);
+}
+
+function renderSalesDetail(bookings) {
+  const body = document.getElementById('sp-detail-body');
+  if (!body) return;
+  if (!bookings.length) {
+    body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">No bookings in this period</td></tr>';
+    return;
+  }
+  body.innerHTML = bookings.map((b,i) => `<tr>
+    <td style="color:var(--text3)">${i+1}</td>
+    <td><code style="color:var(--gold);font-size:0.76rem">${escapeHtml(b.BookingID)}</code></td>
+    <td><strong>${escapeHtml(b.GuestName||'')}</strong></td>
+    <td style="font-size:0.8rem">${escapeHtml(b.ApartmentName||'')}</td>
+    <td>
+      <span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="width:22px;height:22px;border-radius:50%;background:var(--gold-dim);display:inline-flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:var(--gold)">
+          ${escapeHtml((b.SalesPerson||'?').split(' ').map(n=>n[0]||'').join('').substring(0,2).toUpperCase())}
+        </span>
+        ${escapeHtml(b.SalesPerson||'—')}
+      </span>
+    </td>
+    <td style="font-size:0.8rem">${fmtDate(b.CreatedAt||b.CheckIn)}</td>
+    <td style="font-weight:600;color:var(--gold)">${fmtN(b.NegotiatedPrice||0)}</td>
+    <td>${statusBadge(b.BookingStatus)}</td>
+  </tr>`).join('');
+}
+
+function filterSalesTable(q) {
+  const filtered = q
+    ? _spData.filter(b =>
+        (b.SalesPerson||b.CreatedBy||'').toLowerCase().includes(q.toLowerCase()) ||
+        (b.GuestName||'').toLowerCase().includes(q.toLowerCase()))
+    : _spData;
+  renderSalesDetail(filtered);
+}
+
+
+function toggleAptGroup(groupId) {
+  const rows = document.querySelectorAll('#' + groupId);
+  const icon = document.getElementById(groupId + '-icon');
+  const isOpen = rows.length > 0 && rows[0].style.display !== 'none';
+  rows.forEach(r => r.style.display = isOpen ? 'none' : '');
+  if (icon) icon.className = isOpen ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+}
+
+
+// ============================================================
+// BED CONFIGURATIONS
+// ============================================================
+
+function addBedConfig(beds='', rate='') {
+  const list = document.getElementById('bed-configs-list');
+  if (!list) return;
+  const idx = list.children.length;
+  const div = document.createElement('div');
+  div.style.cssText = 'display:flex;gap:8px;align-items:center';
+  div.innerHTML = `
+    <select class="form-control" style="width:130px" data-bc-beds>
+      <option value="">Beds</option>
+      <option value="1BR" ${beds==='1BR'?'selected':''}>1 Bedroom</option>
+      <option value="2BR" ${beds==='2BR'?'selected':''}>2 Bedrooms</option>
+      <option value="3BR" ${beds==='3BR'?'selected':''}>3 Bedrooms</option>
+      <option value="4BR" ${beds==='4BR'?'selected':''}>4 Bedrooms</option>
+      <option value="5BR" ${beds==='5BR'?'selected':''}>5 Bedrooms</option>
+      <option value="Studio" ${beds==='Studio'?'selected':''}>Studio</option>
+    </select>
+    <input type="number" class="form-control" placeholder="Rate (₦)" value="${rate}" data-bc-rate style="flex:1">
+    <button type="button" class="btn btn-rose btn-icon btn-sm" onclick="this.closest('div').remove()"><i class="fas fa-xmark"></i></button>`;
+  list.appendChild(div);
+}
+
+function syncFirstBedConfig() {
+  // Keep first bed config rate in sync with main daily rate
+  const list = document.getElementById('bed-configs-list');
+  if (!list || !list.children.length) return;
+  const firstRate = list.children[0].querySelector('[data-bc-rate]');
+  const mainRate  = document.getElementById('apt-rate')?.value;
+  if (firstRate && mainRate) firstRate.value = mainRate;
+}
+
+function getBedConfigsJson() {
+  const list = document.getElementById('bed-configs-list');
+  if (!list) return '';
+  const configs = [];
+  Array.from(list.children).forEach(row => {
+    const beds = row.querySelector('[data-bc-beds]')?.value;
+    const rate = parseFloat(row.querySelector('[data-bc-rate]')?.value) || 0;
+    if (beds && rate) configs.push({ beds, rate });
+  });
+  return configs.length ? JSON.stringify(configs) : '';
+}
+
+function loadBedConfigsIntoModal(bedConfigsJson) {
+  const list = document.getElementById('bed-configs-list');
+  if (!list) return;
+  list.innerHTML = '';
+  if (!bedConfigsJson) return;
+  try {
+    const configs = JSON.parse(bedConfigsJson);
+    configs.forEach(cfg => addBedConfig(cfg.beds, cfg.rate));
+  } catch(e) {}
+}
+
+// ── In booking modal: when apartment changes, load its bed configs ──
+function loadBedConfigs() {
+  const aptSel  = document.getElementById('bk-apartment');
+  const wrapper = document.getElementById('bk-bed-config-wrapper');
+  const bcSel   = document.getElementById('bk-bed-config');
+  if (!aptSel || !wrapper || !bcSel) return;
+  const opt = aptSel.options[aptSel.selectedIndex];
+  if (!opt || !opt.value) { wrapper.style.display='none'; return; }
+
+  // Find apartment from cache
+  const apt = (APP.cache.apartments||[]).find(a => a.ApartmentID === opt.value);
+  if (!apt || !apt.BedConfigs) { wrapper.style.display='none'; return; }
+
+  let configs = [];
+  try { configs = JSON.parse(apt.BedConfigs); } catch(e) { wrapper.style.display='none'; return; }
+  if (!configs.length) { wrapper.style.display='none'; return; }
+
+  // Populate dropdown
+  bcSel.innerHTML = '<option value="">— Select Bed Config —</option>' +
+    configs.map(cfg =>
+      `<option value="${cfg.rate}" data-beds="${escapeHtml(cfg.beds)}">${escapeHtml(cfg.beds)} — ${fmtN(cfg.rate)}/night</option>`
+    ).join('');
+  wrapper.style.display = '';
+  // Auto-select if only one config
+  if (configs.length === 1) { bcSel.selectedIndex = 1; applyBedConfig(); }
+}
+
+function applyBedConfig() {
+  const bcSel = document.getElementById('bk-bed-config');
+  const opt   = bcSel?.options[bcSel?.selectedIndex];
+  if (!opt || !opt.value) return;
+  const rate  = parseFloat(opt.value) || 0;
+  const beds  = opt.dataset.beds || '';
+  // Override the negotiated price with selected bed config rate
+  const nights = calcNightsFromDates() || 1;
+  const negEl  = document.getElementById('bk-negotiated');
+  const stdEl  = document.getElementById('bk-standard');
+  if (negEl) negEl.value = rate * nights;
+  if (stdEl) stdEl.value = rate * nights;
+  // Store selected config in hidden field for saving
+  let hiddenEl = document.getElementById('bk-bed-config-label');
+  if (!hiddenEl) {
+    hiddenEl = document.createElement('input');
+    hiddenEl.type = 'hidden';
+    hiddenEl.id   = 'bk-bed-config-label';
+    document.getElementById('bk-bed-config')?.parentElement.appendChild(hiddenEl);
+  }
+  hiddenEl.value = beds;
+  updateBookingTotal();
+}
+
+
+// ============================================================
+// POWER BI EMBEDDED REPORTS
+// ============================================================
+const PBI_STORAGE_KEY = 'rr_powerbi_reports';
+
+function loadPBIReports() {
+  const saved = localStorage.getItem(PBI_STORAGE_KEY);
+  return saved ? JSON.parse(saved) : [];
+}
+
+function savePBIReports() {
+  const rows = document.querySelectorAll('#pbi-reports-list .pbi-row');
+  const reports = [];
+  rows.forEach(row => {
+    const name = row.querySelector('[data-pbi-name]')?.value?.trim();
+    const url  = row.querySelector('[data-pbi-url]')?.value?.trim();
+    if (name && url) reports.push({ name, url });
+  });
+  localStorage.setItem(PBI_STORAGE_KEY, JSON.stringify(reports));
+  closeModal('pbi-manage-modal');
+  renderPBIDropdown(reports);
+  showToast('Power BI reports saved', 'success');
+}
+
+function addPBIRow(name='', url='') {
+  const list = document.getElementById('pbi-reports-list');
+  if (!list) return;
+  const div = document.createElement('div');
+  div.className = 'pbi-row';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 2fr auto;gap:8px;align-items:center';
+  div.innerHTML = `
+    <input class="form-control" data-pbi-name placeholder="Report name" value="${escapeHtml(name)}" style="font-size:0.82rem">
+    <input class="form-control" data-pbi-url  placeholder="Power BI embed URL" value="${escapeHtml(url)}" style="font-size:0.82rem">
+    <button class="btn btn-rose btn-icon btn-sm" onclick="this.closest('.pbi-row').remove()" title="Remove">
+      <i class="fas fa-xmark"></i>
+    </button>`;
+  list.appendChild(div);
+}
+
+function renderPBIDropdown(reports) {
+  const sel = document.getElementById('pbi-select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Select Report —</option>' +
+    reports.map((r,i) => `<option value="${i}">${escapeHtml(r.name)}</option>`).join('');
+  if (reports.length === 1) { sel.selectedIndex=1; switchPBIReport('0'); }
+}
+
+function switchPBIReport(indexStr) {
+  const container = document.getElementById('pbi-container');
+  const fullBtn   = document.getElementById('pbi-fullscreen-btn');
+  if (!container) return;
+  if (indexStr === '' || indexStr === null || indexStr === undefined) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Select a report above</div>';
+    if (fullBtn) fullBtn.style.display = 'none';
+    return;
+  }
+  const reports = loadPBIReports();
+  const report  = reports[parseInt(indexStr)];
+  if (!report) return;
+  container.innerHTML = `
+    <div style="position:relative;width:100%;padding-top:56.25%;background:var(--bg3)">
+      <iframe src="${escapeHtml(report.url)}"
+        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;border-radius:0 0 var(--r) var(--r)"
+        allowfullscreen
+        title="${escapeHtml(report.name)}">
+      </iframe>
+    </div>`;
+  if (fullBtn) fullBtn.style.display = '';
+}
+
+function openPBIFullscreen() {
+  const sel    = document.getElementById('pbi-select');
+  const idx    = sel?.value;
+  if (idx === '' || idx === null || idx === undefined) return;
+  const reports = loadPBIReports();
+  const report  = reports[parseInt(idx)];
+  if (!report?.url) return;
+  window.open(report.url, '_blank', 'noopener');
+}
+
+function openPBIManageModal() {
+  const list    = document.getElementById('pbi-reports-list');
+  if (!list) return;
+  list.innerHTML = '';
+  const reports = loadPBIReports();
+  if (reports.length === 0) addPBIRow('', '');
+  else reports.forEach(r => addPBIRow(r.name, r.url));
+}
+
+// Init Power BI on reports page load
+function loadReports() {
+  const reports = loadPBIReports();
+  renderPBIDropdown(reports);
+}
+
+
+// ── RecycleBin viewer ──
+async function loadRecycleBin() {
+  const body = document.getElementById('recycle-body');
+  if (!body) return;
+  body.innerHTML = '<tr><td colspan="8" class="page-loader"><div class="spinner"></div></td></tr>';
+  try {
+    const data = await api('getRecycleBin', {});
+    if (!data || !data.length) {
+      body.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px"><i class="fas fa-check-circle" style="color:var(--emerald);margin-right:8px"></i>Recycle Bin is empty</td></tr>';
+      return;
+    }
+    body.innerHTML = data.map(r => `<tr>
+      <td><code style="color:var(--amber);font-size:0.72rem">${escapeHtml(r.RecycleBinID||'')}</code></td>
+      <td><span class="badge badge-amber" style="font-size:0.7rem">${escapeHtml(r.OriginalSheet||'')}</span></td>
+      <td><code style="font-size:0.72rem">${escapeHtml(r.RecordID||'')}</code></td>
+      <td>${escapeHtml(r.RecordType||'')}</td>
+      <td><strong>${escapeHtml(r.DeletedBy||'')}</strong></td>
+      <td style="color:var(--rose);max-width:200px">${escapeHtml(r.DeleteReason||'—')}</td>
+      <td style="font-size:0.78rem">${fmtDate(r.DeletedAt)}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" style="font-size:0.72rem"
+          onclick="showRecycleData(${JSON.stringify(r.OriginalData||'{}').replace(/"/g,'&quot;')})">
+          <i class="fas fa-eye"></i> View
+        </button>
+      </td>
+    </tr>`).join('');
+  } catch(e) {
+    body.innerHTML = `<tr><td colspan="8" style="color:var(--rose);padding:16px">${escapeHtml(e.message)}</td></tr>`;
+  }
+}
+
+function showRecycleData(jsonStr) {
+  try {
+    const obj = typeof jsonStr === 'string' ? JSON.parse(jsonStr) : jsonStr;
+    const lines = Object.entries(obj)
+      .filter(([k,v]) => v !== '' && v !== null && v !== undefined)
+      .map(([k,v]) => `<tr><td style="color:var(--text3);padding:4px 8px;font-size:0.78rem">${escapeHtml(k)}</td><td style="padding:4px 8px;font-size:0.78rem">${escapeHtml(String(v))}</td></tr>`)
+      .join('');
+    showToast('Record data shown in console', 'info');
+    // Show in a simple alert-style overlay
+    const existing = document.getElementById('recycle-data-view');
+    if (existing) existing.remove();
+    const div = document.createElement('div');
+    div.id = 'recycle-data-view';
+    div.style.cssText = 'position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;padding:20px';
+    div.innerHTML = `<div style="background:var(--bg2);border-radius:14px;max-width:600px;width:100%;max-height:80vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <strong>Deleted Record Data</strong>
+        <button onclick="document.getElementById('recycle-data-view').remove()" style="background:none;border:none;color:var(--text3);font-size:1.2rem;cursor:pointer">&times;</button>
+      </div>
+      <div style="padding:12px 20px"><table style="width:100%;border-collapse:collapse">${lines}</table></div>
+    </div>`;
+    document.body.appendChild(div);
+    div.onclick = (e) => { if (e.target===div) div.remove(); };
+  } catch(e) { showToast('Could not parse record data', 'error'); }
+}
+
+
+// ════════════════════════════════════════════
+// APARTMENT PHOTO MANAGEMENT
+// ════════════════════════════════════════════
+
+function switchPhotoTab(tab) {
+  const isUpload = tab === 'upload';
+  document.getElementById('photo-upload-panel').style.display = isUpload ? '' : 'none';
+  document.getElementById('photo-url-panel').style.display    = isUpload ? 'none' : '';
+  const tabUpload = document.getElementById('photo-tab-upload');
+  const tabUrl    = document.getElementById('photo-tab-url');
+  if (tabUpload) {
+    tabUpload.style.background = isUpload ? 'var(--gold)' : 'var(--bg3)';
+    tabUpload.style.color      = isUpload ? 'var(--ink)'  : 'var(--text2)';
+  }
+  if (tabUrl) {
+    tabUrl.style.background = isUpload ? 'var(--bg3)' : 'var(--gold)';
+    tabUrl.style.color      = isUpload ? 'var(--text2)' : 'var(--ink)';
+  }
+}
+
+function handlePhotoDrop(event) {
+  event.preventDefault();
+  document.getElementById('photo-drop-zone').style.borderColor = 'var(--border2)';
+  const files = event.dataTransfer?.files;
+  if (files) handlePhotoUpload(files);
+}
+
+function handlePhotoUpload(files) {
+  const previews = document.getElementById('photo-previews');
+  const existing = previews.querySelectorAll('[data-photo]').length;
+  const slots    = ['apt-image-url1','apt-image-url2','apt-image-url3'];
+  let processed  = 0;
+
+  Array.from(files).slice(0, 3 - existing).forEach((file, i) => {
+    if (!file.type.startsWith('image/')) return;
+    if (file.size > 5 * 1024 * 1024) { showToast('Photo too large — max 5MB', 'error'); return; }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const dataUrl = e.target.result;
+      const slotIdx = existing + i;
+      // Store in hidden URL fields so they get picked up by submitApartment
+      const urlField = document.getElementById(slots[slotIdx] || slots[2]);
+      if (urlField) urlField.value = dataUrl;
+      // Show preview
+      renderPhotoPreview(dataUrl, slotIdx, file.name);
+      processed++;
+      if (processed === 1) showToast('Photo uploaded! It will be saved when you click Save.', 'success');
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderPhotoPreview(url, idx, label) {
+  const previews = document.getElementById('photo-previews');
+  // Remove existing preview at this index
+  const existing = previews.querySelector(`[data-photo="${idx}"]`);
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.dataset.photo = idx;
+  div.style.cssText = 'position:relative;width:100px;height:75px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0';
+  div.innerHTML = `
+    <img src="${url}" style="width:100%;height:100%;object-fit:cover" alt="${escapeHtml(label||'Photo '+(idx+1))}">
+    <div style="position:absolute;top:2px;left:3px;background:rgba(0,0,0,.6);color:#fff;font-size:0.55rem;padding:1px 5px;border-radius:3px">Photo ${idx+1}</div>
+    <button onclick="removePhoto(${idx})" style="position:absolute;top:2px;right:2px;background:rgba(232,85,85,.9);border:none;color:#fff;width:18px;height:18px;border-radius:50%;cursor:pointer;font-size:0.6rem;display:flex;align-items:center;justify-content:center;padding:0">
+      <i class="fas fa-times"></i>
+    </button>`;
+  previews.appendChild(div);
+}
+
+function removePhoto(idx) {
+  const slots = ['apt-image-url1','apt-image-url2','apt-image-url3'];
+  const urlField = document.getElementById(slots[idx]);
+  if (urlField) urlField.value = '';
+  const previews = document.getElementById('photo-previews');
+  const existing = previews.querySelector(`[data-photo="${idx}"]`);
+  if (existing) existing.remove();
+}
+
+function previewUrlPhotos() {
+  const slots = ['apt-image-url1','apt-image-url2','apt-image-url3'];
+  const previews = document.getElementById('photo-previews');
+  previews.innerHTML = '';
+  slots.forEach((id, i) => {
+    const val = document.getElementById(id)?.value?.trim();
+    if (val) renderPhotoPreview(val, i, 'Photo '+(i+1));
+  });
+}
+
+// Wire URL inputs to auto-preview
+['apt-image-url1','apt-image-url2','apt-image-url3'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('blur', previewUrlPhotos);
+});
+
+// ── Amenity toggle ──
+function toggleAmenity(el) {
+  const isOn = el.style.background.includes('var(--gold)') || el.style.background === 'var(--gold)';
+  el.style.background   = isOn ? 'var(--bg3)'   : 'var(--gold)';
+  el.style.color        = isOn ? 'var(--text2)'  : 'var(--ink)';
+  el.style.borderColor  = isOn ? 'var(--border2)': 'var(--gold)';
+  // Update amenities text input
+  const selected = Array.from(document.querySelectorAll('.amenity-toggle'))
+    .filter(p => p.style.background === 'var(--gold)' || p.style.color === 'var(--ink)')
+    .map(p => p.dataset.val);
+  const amenInput = document.getElementById('apt-amenities');
+  if (amenInput) amenInput.value = selected.join(', ');
+}
+
+function resetAmenityPills() {
+  document.querySelectorAll('.amenity-toggle').forEach(p => {
+    p.style.background  = 'var(--bg3)';
+    p.style.color       = 'var(--text2)';
+    p.style.borderColor = 'var(--border2)';
+  });
+}
+
+function loadAmenitiesIntoModal(amenStr) {
+  resetAmenityPills();
+  if (!amenStr) return;
+  const amenities = amenStr.split(',').map(a => a.trim().toLowerCase());
+  document.querySelectorAll('.amenity-toggle').forEach(p => {
+    if (amenities.includes(p.dataset.val.toLowerCase())) {
+      p.style.background  = 'var(--gold)';
+      p.style.color       = 'var(--ink)';
+      p.style.borderColor = 'var(--gold)';
+    }
+  });
+  document.getElementById('apt-amenities').value = amenStr;
+}
+
+function resetPhotoPanel() {
+  document.getElementById('photo-previews').innerHTML = '';
+  ['apt-image-url1','apt-image-url2','apt-image-url3'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  resetAmenityPills();
+}
+
+
+// ════════════════════════════════════════════
+// RESTAURANT SALE EDIT
+// ════════════════════════════════════════════
+async function editRestaurantSale(saleId) {
+  // Try cache first, then fetch fresh if not found
+  let sale = (APP.cache.restaurant||[]).find(s => s.SaleID === saleId);
+  if (!sale) {
+    try {
+      const fresh = await api('getRestaurant', {});
+      APP.cache.restaurant = fresh || [];
+      sale = (fresh||[]).find(s => s.SaleID === saleId);
+    } catch(e) {}
+  }
+  if (!sale) { showToast('Sale not found — refresh the page and try again', 'error'); return; }
+
+  // Re-use the restaurant modal
+  const modal = document.getElementById('sale-modal');
+  if (!modal) { showToast('Sale modal not found', 'error'); return; }
+
+  // Set edit mode
+  let hiddenId = document.getElementById('rest-edit-id');
+  if (!hiddenId) {
+    hiddenId = document.createElement('input');
+    hiddenId.type='hidden'; hiddenId.id='rest-edit-id';
+    modal.querySelector('.modal-body').appendChild(hiddenId);
+  }
+  hiddenId.value = saleId;
+
+  // Pre-fill fields (sale-modal uses sale-* IDs)
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+  set('sale-date',    sale.Date ? String(sale.Date).substring(0,10) : '');
+  set('sale-type',    sale.Type||'');
+  set('sale-channel', sale.SalesChannel||'In-house');
+  set('sale-items',   sale.Items||'');
+  set('sale-amount',  sale.Amount||'');
+  set('sale-method',  sale.PaymentMethod||'Cash');
+  set('sale-staff',   sale.ServingStaff||'');
+  set('sale-notes',   sale.Notes||'');
+
+  // Update modal title and button
+  const title = modal.querySelector('.modal-header h2');
+  if (title) title.textContent = 'Edit Restaurant Sale';
+  const saveBtn = modal.querySelector('.btn-primary');
+  if (saveBtn) saveBtn.onclick = submitRestaurantEdit;
+
+  openModal('sale-modal');
+}
+
+async function submitRestaurantEdit() {
+  const id = document.getElementById('rest-edit-id')?.value;
+  if (!id) { submitRestaurantSale(); return; }
+
+  const data = {
+    SaleID:        id,
+    Date:          document.getElementById('sale-date')?.value || todayStr(),
+    Type:          document.getElementById('sale-type')?.value || '',
+    SalesChannel:  document.getElementById('sale-channel')?.value || 'In-house',
+    Items:         document.getElementById('sale-items')?.value?.trim() || '',
+    Amount:        parseFloat(document.getElementById('sale-amount')?.value) || 0,
+    PaymentMethod: document.getElementById('sale-method')?.value || 'Cash',
+    ServingStaff:  document.getElementById('sale-staff')?.value?.trim() || '',
+    Notes:         document.getElementById('sale-notes')?.value?.trim() || '',
+  };
+
+  try {
+    await api('updateRestaurantSale', data);
+    showToast('Sale updated', 'success');
+    closeModal('restaurant-modal');
+    APP.cache.restaurant = null;
+    loadRestaurant();
+    // Clear edit mode BEFORE closeModal fires
+    const hiddenId = document.getElementById('rest-edit-id');
+    if (hiddenId) hiddenId.value = '';
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+
+// ════════════════════════════════════════════
+// SUBSCRIPTION PLAN SYSTEM
+// ════════════════════════════════════════════
+
+function showUpgradeModal(pageId) {
+  // Find which plan unlocks this page
+  const pageLabel = PAGE_TITLES[pageId] || pageId;
+  let neededPlan = null;
+  for (const [key, plan] of Object.entries(PLAN_CONFIG)) {
+    if (plan.pages.includes(pageId)) { neededPlan = key; break; }
+  }
+  const plan = neededPlan ? PLAN_CONFIG[neededPlan] : null;
+
+  document.getElementById('upgrade-modal-text').innerHTML =
+    `<strong>${escapeHtml(pageLabel)}</strong> is available on the ` +
+    `<strong style="color:var(--gold)">${neededPlan||'Professional'}</strong> plan and above.`;
+
+  const featsEl = document.getElementById('upgrade-modal-features');
+  if (plan) {
+    featsEl.innerHTML = plan.features.slice(0,6).map(f =>
+      `<div style="display:flex;align-items:center;gap:8px;font-size:0.83rem">
+        <i class="fas fa-check-circle" style="color:var(--emerald);flex-shrink:0"></i>${escapeHtml(f)}
+      </div>`
+    ).join('');
+  }
+  openModal('upgrade-modal');
+}
+
+async function loadPlanFromBackend() {
+  try {
+    const settings = await api('getSettings', {});
+    if (settings && settings.subscription_plan) {
+      CURRENT_PLAN = settings.subscription_plan;
+      localStorage.setItem('rr_current_plan', CURRENT_PLAN);
+    } else {
+      CURRENT_PLAN = null;
+    }
+  } catch(e) {
+    // Fallback to localStorage cache
+    CURRENT_PLAN = localStorage.getItem('rr_current_plan') || null;
+  }
+  applyRolePermissions();
+}
+
+async function switchPlan(planKey) {
+  if (planKey === 'none') {
+    CURRENT_PLAN = null;
+    localStorage.removeItem('rr_current_plan');
+  } else {
+    CURRENT_PLAN = planKey;
+    localStorage.setItem('rr_current_plan', planKey);
+  }
+  // Save to backend so it persists across devices during demo
+  try {
+    await api('updateSettings', { subscription_plan: planKey === 'none' ? '' : planKey });
+  } catch(e) {}
+  applyRolePermissions();
+  renderPlanSwitcherUI();
+  showToast(planKey==='none' ? 'Plan restriction removed — full access' : `Switched to ${planKey} plan`, 'success');
+}
+
+function renderPlanSwitcherUI(editable) {
+  const container = document.getElementById('plan-switcher-cards');
+  if (!container) return;
+  const plans = editable ? ['none', 'Starter', 'Professional', 'Enterprise'] : ['Starter', 'Professional', 'Enterprise'];
+
+  container.innerHTML = plans.map(key => {
+    const isActive = (key === 'none' && !CURRENT_PLAN) || key === CURRENT_PLAN;
+    const plan = PLAN_CONFIG[key];
+    const clickAction = editable ? `switchPlan('${key}')` : `previewPlanFeatures('${key}')`;
+    return `<div onclick="${clickAction}" style="
+      cursor:pointer;border-radius:12px;padding:16px;
+      border:2px solid ${isActive?'var(--gold)':'var(--border)'};
+      background:${isActive?'var(--gold-dim)':'var(--bg3)'};
+      transition:all .2s;position:relative">
+      ${isActive?'<div style="position:absolute;top:10px;right:10px;color:var(--gold)"><i class="fas fa-check-circle" title="Current Plan"></i></div>':''}
+      <div style="font-weight:700;font-size:0.95rem;margin-bottom:4px">${key==='none'?'Full Access (No Limit)':escapeHtml(plan.label)}</div>
+      <div style="font-size:0.78rem;color:var(--text3);margin-bottom:8px">
+        ${key==='none' ? 'For your own instance — no feature restrictions' : escapeHtml(plan.tagline)}
+      </div>
+      ${plan ? `<div style="font-size:1.2rem;font-weight:700;color:var(--gold)">₦${plan.price.toLocaleString()}<span style="font-size:0.7rem;color:var(--text3);font-weight:400">/month</span></div>` : ''}
+      ${plan ? `<div style="font-size:0.72rem;color:var(--text3);margin-top:6px">${plan.pages.length} features unlocked</div>` : ''}
+      ${!editable ? `<div style="margin-top:10px;font-size:0.74rem;color:var(--sky);font-weight:600"><i class="fas fa-eye" style="margin-right:4px"></i>${isActive?'Your current plan':'Click to preview'}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function previewPlanFeatures(planKey) {
+  const plan = PLAN_CONFIG[planKey];
+  if (!plan) return;
+  const modal = document.getElementById('upgrade-modal');
+  document.getElementById('upgrade-modal-text').innerHTML = `<strong style="color:var(--gold)">${escapeHtml(plan.label)} Plan</strong> — ₦${plan.price.toLocaleString()}/month`;
+  document.getElementById('upgrade-modal-features').innerHTML = plan.features.map(f =>
+    `<div style="display:flex;align-items:center;gap:8px;font-size:0.83rem">
+      <i class="fas fa-check-circle" style="color:var(--emerald);flex-shrink:0"></i>${escapeHtml(f)}
+    </div>`
+  ).join('');
+  openModal('upgrade-modal');
 }
 
 
@@ -9308,35 +11269,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-<nav id="mobile-nav" style="
-  display:none;position:fixed;bottom:0;left:0;right:0;z-index:150;
-  background:var(--bg2);border-top:1px solid var(--border);
-  padding:6px 0 max(6px, env(safe-area-inset-bottom));
-  -webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);">
-  <div style="display:flex;justify-content:space-around;align-items:center">
-    <button onclick="showPage('dashboard',this)" class="mob-nav-btn" data-page="dashboard" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;cursor:pointer;color:var(--text3);font-size:0.6rem;min-width:48px">
-      <i class="fas fa-chart-pie" style="font-size:1.1rem"></i><span>Dashboard</span>
-    </button>
-    <button onclick="showPage('bookings',this)" class="mob-nav-btn" data-page="bookings" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;cursor:pointer;color:var(--text3);font-size:0.6rem;min-width:48px">
-      <i class="fas fa-calendar-check" style="font-size:1.1rem"></i><span>Bookings</span>
-    </button>
-    <button onclick="showPage('finance',this)" class="mob-nav-btn" data-page="finance" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;cursor:pointer;color:var(--text3);font-size:0.6rem;min-width:48px">
-      <i class="fas fa-coins" style="font-size:1.1rem"></i><span>Finance</span>
-    </button>
-    <button onclick="showPage('maintenance',this)" class="mob-nav-btn" data-page="maintenance" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;cursor:pointer;color:var(--text3);font-size:0.6rem;min-width:48px">
-      <i class="fas fa-wrench" style="font-size:1.1rem"></i><span>Maintain</span>
-    </button>
-    <button onclick="document.getElementById('sidebar').classList.toggle('open');document.getElementById('sidebar-overlay').classList.toggle('active')" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 10px;cursor:pointer;color:var(--text3);font-size:0.6rem;min-width:48px">
-      <i class="fas fa-grid-2" style="font-size:1.1rem"></i><span>More</span>
-    </button>
-  </div>
-</nav>
+
 
 <style>
-@media (max-width: 900px) {
-  #mobile-nav { display: block !important; }
-  .mob-nav-btn.active, .mob-nav-btn[data-active="true"] { color: var(--gold) !important; }
-}
+/* mobile nav removed */
 </style>
 
 </body>
